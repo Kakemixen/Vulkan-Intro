@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <vulkan/vulkan_core.h>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -103,6 +104,11 @@ struct QueueFamilyIndices
     }
 };
 
+struct SwapChainSupportDetails {
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
+};
 
 class HelloTriangleApplication
 {
@@ -135,9 +141,13 @@ private:
 
     void mainLoop() 
     {
+        int loops = 0;
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
+            loops++;
+            if (loops > 50) break;
         }
+        std::cout << "terminating\n";
     }
 
     void cleanup() 
@@ -236,6 +246,31 @@ private:
         return indices;
     }
 
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device)
+    {
+        SwapChainSupportDetails details;
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+
+        uint32_t formatCount = 0;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+        if (formatCount != 0) {
+            details.formats.resize(formatCount);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, 
+                    &formatCount, details.formats.data());
+        }
+
+        uint32_t presentModeCount;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface,
+                &presentModeCount, nullptr);
+        if (presentModeCount != 0) {
+            details.presentModes.resize(presentModeCount);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface,
+                    &presentModeCount, details.presentModes.data());
+        }
+
+        return details;
+    }
+
     void pickPhysicalDevice()
     {
         uint32_t deviceCount = 0;
@@ -289,9 +324,11 @@ private:
 
         createInfo.pEnabledFeatures = &deviceFeatures;
 
-        //ignored by recent vulkan version, here for backwards compatibility
-        createInfo.enabledExtensionCount = 0;
+        createInfo.enabledExtensionCount =
+            static_cast<uint32_t>(deviceExtensions.size());
+        createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
+        //ignored by recent vulkan version, here for backwards compatibility
         if (enableValidationLayers) {
             createInfo.enabledLayerCount =
                 static_cast<uint32_t>(validationLayers.size());
@@ -347,8 +384,18 @@ private:
 
         QueueFamilyIndices indices = findQueueFamilies(device);
 
+        bool extensionsSuported = checkDeviceExtensionSupport(device);
+
+        bool swapChainAdequate = false;
+        if (extensionsSuported) {
+            SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+            swapChainAdequate = !swapChainSupport.formats.empty() 
+                && !swapChainSupport.presentModes.empty();
+        }
+
         if (!(indices.isComplete()
-                && checkDeviceExtensionSupport(device))) 
+                && extensionsSuported
+                && swapChainAdequate)) 
         {
             return 0;
         }
@@ -429,5 +476,6 @@ int main()
         return EXIT_FAILURE;
     }
 
+    std::cout << "OK\n";
     return EXIT_SUCCESS;
 }
