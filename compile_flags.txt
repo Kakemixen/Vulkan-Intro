@@ -1,0 +1,2 @@
+-std=c++17
+-I/home/user/.local/vulkan/1.2.182.0/x86_64/include

@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <vector>
+#include <map>
+#include <optional>
 
 #include <string.h>
 
@@ -52,9 +54,8 @@ std::vector<const char*> getRequiredExtensions()
 
     std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
     
-    if (enableValidationLayers) {
+    if (enableValidationLayers)
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
 
     return extensions;
 }
@@ -82,9 +83,37 @@ void proxyDestroyDebugUtilsMessengerEXT(
 {
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)
         vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-    if (func != nullptr) {
+    if (func != nullptr)
         return func(instance, debugMessenger, pAllocator);
+}
+
+struct QueueFamilyIndices
+{
+    std::optional<uint32_t> graphicsFamily;
+
+    bool isComplete() {
+        return graphicsFamily.has_value();
     }
+};
+
+QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device)
+{
+    QueueFamilyIndices indices;
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+    int i = 0;
+    for (const auto& queueFamily : queueFamilies) {
+        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            indices.graphicsFamily = i;
+        }
+        i++;
+    }
+
+    return indices;
 }
 
 class HelloTriangleApplication
@@ -111,6 +140,7 @@ private:
     {
         createInstance();
         setupDebugmessenger();
+        pickPhysicalDevice();
     }
 
     void mainLoop() 
@@ -122,9 +152,9 @@ private:
 
     void cleanup() 
     {
-        if (enableValidationLayers) {
+        if (enableValidationLayers)
             proxyDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-        }
+
         vkDestroyInstance(instance, nullptr);
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -188,6 +218,57 @@ private:
         }
     }
 
+    void pickPhysicalDevice()
+    {
+        uint32_t deviceCount = 0;
+        vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+        if (deviceCount == 0) {
+            throw std::runtime_error("failed to fing GPUs with Vulkan support!");
+        }
+        std::vector<VkPhysicalDevice> devices(deviceCount);
+        vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
+        std::multimap<int, VkPhysicalDevice> candidates;
+        for (const auto& device : devices) {
+            int score = rateDeviceSuitability(device);
+            std::cout << "device: " << device << " score: " << score << "\n";
+            candidates.insert(std::make_pair(score, device));
+        }
+
+        if (candidates.rbegin()->first > 0) {
+            physicalDevice = candidates.rbegin()->second;
+        }
+        else {
+            throw std::runtime_error("failed to find a suitable GPU!");
+        }
+    }
+
+    int rateDeviceSuitability(VkPhysicalDevice device)
+    {
+        VkPhysicalDeviceProperties deviceProperties;
+        VkPhysicalDeviceFeatures   deviceFeatures;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+        int score = 0;
+
+        // nice to haves
+        if (deviceProperties.deviceType ==
+                VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        {
+            score += 100;
+        }
+
+        score += deviceProperties.limits.maxImageDimension2D; //max textures
+
+        QueueFamilyIndices indices = findQueueFamilies(device);
+
+        //if (!indices.isComplete()) {
+        //    return 0;
+        //}
+
+        return score;
+    }
+
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
             VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -234,6 +315,7 @@ private:
     GLFWwindow* window;
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 };
 
 int main()
