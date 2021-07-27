@@ -103,15 +103,18 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device)
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
 
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
     int i = 0;
+    std::cout << "queueFamilyCount: " << queueFamilyCount << "\n";
     for (const auto& queueFamily : queueFamilies) {
         if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             indices.graphicsFamily = i;
         }
         i++;
     }
+    std::cout << "found graphicsFamily: " << std::boolalpha << indices.graphicsFamily.has_value() << "\n";
+    std::cout << "graphicsFamily index: " << indices.graphicsFamily.value() << "\n";
 
     return indices;
 }
@@ -141,6 +144,7 @@ private:
         createInstance();
         setupDebugmessenger();
         pickPhysicalDevice();
+        createLogicalDevice();
     }
 
     void mainLoop() 
@@ -243,6 +247,15 @@ private:
         }
     }
 
+    void createLogicalDevice() 
+    {
+        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+        queueCreateInfo.queueCount = 1;
+    }
+
     int rateDeviceSuitability(VkPhysicalDevice device)
     {
         VkPhysicalDeviceProperties deviceProperties;
@@ -262,9 +275,9 @@ private:
 
         QueueFamilyIndices indices = findQueueFamilies(device);
 
-        //if (!indices.isComplete()) {
-        //    return 0;
-        //}
+        if (!indices.isComplete()) {
+            return 0;
+        }
 
         return score;
     }
@@ -316,6 +329,7 @@ private:
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    VkDevice device;
 };
 
 int main()
