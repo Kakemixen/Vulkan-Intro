@@ -142,6 +142,7 @@ private:
         createLogicalDevice();
         createSwapChain();
         createImageViews();
+        createGraphicsPipeline();
     }
 
     void mainLoop() 
@@ -556,6 +557,10 @@ private:
         {
             throw std::runtime_error("failed to create window surface!");
         }
+    }
+
+    void createGraphicsPipeline()
+    {
     }
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
