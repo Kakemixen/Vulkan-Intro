@@ -53,7 +53,7 @@ bool checkValidationLayerSupport()
             }
         }
         if (!layerFound)
-            return true;
+            return false;
     }
     return true;
 }
@@ -72,6 +72,9 @@ std::vector<const char*> getRequiredExtensions()
     return extensions;
 }
 
+/* * *
+ * Proxy function for finding punction pointer of extension.
+ */
 VkResult proxyCreateDebugUtilsMessengerEXT(
         VkInstance instance, 
         const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
@@ -289,6 +292,11 @@ private:
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
+    /* * *
+     * Set up an instance of the vulkan API, initializing the core and needed extensions.
+     * Such extensions are e.g. the ones needed by GLFW.
+     * We also initialize validation layers here
+     */
     void createInstance() 
     {
         if (enableValidationLayers && !checkValidationLayerSupport())
@@ -336,9 +344,9 @@ private:
         }
 
         uint32_t extensionCount = 0;
-        vkEnumerateInstanceExtensionProperties(nullptr, &glfwExtensionCount, nullptr);
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
         std::vector<VkExtensionProperties> extensions(extensionCount);
-        vkEnumerateInstanceExtensionProperties(nullptr, &glfwExtensionCount, extensions.data());
+        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
         std::cout << "available extensions \n";
 
@@ -347,6 +355,10 @@ private:
         }
     }
 
+    /* * *
+     * Enumerate all queues supported by GPU
+     * Populate the QueueFamilyIndices struct with correct indices.
+     */
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device)
     {
         QueueFamilyIndices indices;
@@ -397,6 +409,11 @@ private:
         return details;
     }
 
+    /* * *
+     * Choosing a physical deivce, a specific GPU for rendering
+     * We check against features we need to select a compatible GPU
+     * Returning the one we rank best according to the reate func
+     */
     void pickPhysicalDevice()
     {
         uint32_t deviceCount = 0;
@@ -422,6 +439,9 @@ private:
         }
     }
 
+    /* * *
+     * Create a logical device to interface with our selecte physical device
+     */
     void createLogicalDevice() 
     {
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
@@ -471,6 +491,7 @@ private:
             throw std::runtime_error("failed to create logical device!");
         }
 
+        // get a handle to the queuew we will use
         vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
         vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
     }
@@ -491,6 +512,9 @@ private:
         return requiredExtensions.empty();
     }
 
+    /* * *
+     * score a physical GPU in order to facilitate selection
+     */
     int rateDeviceSuitability(VkPhysicalDevice device)
     {
         VkPhysicalDeviceProperties deviceProperties;
@@ -579,6 +603,9 @@ private:
         }
     }
 
+    /* * *
+     * Create the swap chain, a structure wich holds framebuffers before presenting to screen
+     */
     void createSwapChain()
     {
         SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
@@ -659,6 +686,10 @@ private:
         createCommandBuffers();
     }
 
+    /* * * 
+     * Create views for images in the swap chain
+     * They are objects that describe and enable us to access the images.
+     */
     void createImageViews()
     {
         swapChainImageViews.resize(swapChainImages.size());
@@ -690,6 +721,9 @@ private:
         }
     }
 
+    /* * *
+     * Creating a vulkan surface mapped to our GLFW window
+     */
     void createSurface()
     {
         if (glfwCreateWindowSurface(instance, window, nullptr, &surface)
@@ -699,6 +733,10 @@ private:
         }
     }
 
+    /* * *
+     * The render pass object
+     * It describes how to use the framebuffers during rendering
+     */
     void createRenderPass()
     {
         VkAttachmentDescription colorAttachment{};
@@ -744,6 +782,10 @@ private:
         }
     }
 
+    /* * *
+     * create the entire rasterization pipeline, the operations we apply to render our stuff
+     * with our pre-compiled shaders
+     */
     void createGraphicsPipeline()
     {
         auto vertShaderCode = readFile("shaders/vert.spv");
@@ -915,6 +957,9 @@ private:
         return shaderModule;
     }
 
+    /* * *
+     * create framebuffers, objects references all needed imageviews for an operation
+     */
     void createFramebuffers()
     {
         swapChainFramebuffers.resize(swapChainImageViews.size());
@@ -941,6 +986,9 @@ private:
         }
     }
 
+    /* * *
+     * create a commandpool, object responsible for managing comand buffers
+     */
     void createCommandPool()
     {
         QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
@@ -957,6 +1005,9 @@ private:
         }
     }
 
+    /* * *
+     * Framebuffers are responsible for holding a set of operations to be applied during rendering
+     */
     void createCommandBuffers()
     {
         commandBuffers.resize(swapChainFramebuffers.size());
@@ -1005,6 +1056,10 @@ private:
         }
     }
 
+    /* * *
+     * Sync objects enable us to sync between frames and cpu-gpu to avoid using 
+     * a single resource simoultaneously with itself
+     */
     void createSyncObjects() 
     {
         imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -1059,7 +1114,10 @@ private:
         createInfo.pfnUserCallback = debugCallback;
         createInfo.pUserData = nullptr; // optionally this
     }
-
+    
+    /* * *
+     * Setting up debug messenger for validation layers defined by vulkan.
+     */
     void setupDebugmessenger() {
         if (!enableValidationLayers) return;
 
