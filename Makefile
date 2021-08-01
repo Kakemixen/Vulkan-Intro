@@ -1,18 +1,22 @@
-VULKAN_SDK_PATH = /home/user/.local/vulkan/1.2.182.0/x86_64
+CFLAGS = -std=c++17
+LDFLAGS = `pkg-config --static --libs glfw3` -lvulkan
 
-CFLAGS = -std=c++17 -I$(VULKAN_SDK_PATH)/include
-LDFLAGS = -L$(VULKAN_SDK_PATH)/lib `pkg-config --static --libs glfw3` -lvulkan
-
-Application: main.cpp
+Application: main.cpp shaders/vert.spv shaders/frag.spv
 	g++ $(CFLAGS) -o Application main.cpp $(LDFLAGS)
 
-.PHONY: test clean
+shaders/vert.spv: shaders/shader.vert
+	glslc shaders/shader.vert -o shaders/vert.spv
+
+shaders/frag.spv: shaders/shader.frag
+	glslc shaders/shader.frag -o shaders/frag.spv
+
+
+.PHONY: run clean
 
 run: Application
-	LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib
-	VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/vulkan/explicit_layer.d
-	./Application
+	nixVulkanNvidia ./Application
 
 clean:
 	rm -f Application
+	rm -f shaders/*.spv
 
