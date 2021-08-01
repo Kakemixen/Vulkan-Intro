@@ -146,10 +146,12 @@ struct QueueFamilyIndices
 {
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;
+    std::optional<uint32_t> transferFamily;
 
     bool isComplete() {
         return graphicsFamily.has_value() &&
-            presentFamily.has_value();
+            presentFamily.has_value() && 
+            transferFamily.has_value();
     }
 };
 
@@ -215,6 +217,7 @@ private:
         createGraphicsPipeline();
         createFramebuffers();
         createCommandPool();
+        createTransferCommandPool();
         createVertexBuffer();
         createCommandBuffers();
         createSyncObjects();
@@ -241,6 +244,7 @@ private:
             vkDestroyFence(device, inFlightFences[i], nullptr);
         }
         vkDestroyCommandPool(device, commandPool, nullptr);
+        vkDestroyCommandPool(device, transferCommandPool, nullptr);
         vkDestroyDevice(device, nullptr);
         if (enableValidationLayers)
             proxyDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
@@ -418,9 +422,13 @@ private:
 
             VkBool32 presentSupport = false;
             vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+
             
             if (presentSupport)
                 indices.presentFamily = i;
+            else if (!(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+                    && (queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT))
+                indices.transferFamily = i;
 
             i++;
         }
@@ -491,7 +499,9 @@ private:
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         std::set<uint32_t> uniqueQueueFamilies = {
             indices.graphicsFamily.value(),
-            indices.presentFamily.value()};
+            indices.presentFamily.value(),
+            indices.transferFamily.value()
+        };
 
         float queuePriority = 1.f;
         for (uint32_t queueFamily : uniqueQueueFamilies) {
@@ -537,6 +547,7 @@ private:
         // get a handle to the queuew we will use
         vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
         vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+        vkGetDeviceQueue(device, indices.transferFamily.value(), 0, &transferQueue);
     }
 
     bool checkDeviceExtensionSupport(VkPhysicalDevice device)
@@ -1051,13 +1062,35 @@ private:
         }
     }
 
+    void createTransferCommandPool()
+    {
+        QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
+
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
+        poolInfo.flags = 0;
+
+        if (vkCreateCommandPool(device, &poolInfo, nullptr, &transferCommandPool)
+                != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create tranfer command pool!");
+        }
+    }
+
     void createVertexBuffer()
     {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.size = sizeof(vertices[0]) * vertices.size();
         bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+        bufferInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+        uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.transferFamily.value()};
+        bufferInfo.queueFamilyIndexCount = 2;
+        bufferInfo.pQueueFamilyIndices = queueFamilyIndices;
+
 
         if (vkCreateBuffer(device, &bufferInfo, nullptr, &vertexBuffer)
                 != VK_SUCCESS)
@@ -1243,6 +1276,7 @@ private:
     VkDevice device;
     VkQueue graphicsQueue;
     VkQueue presentQueue;
+    VkQueue transferQueue;
     VkSwapchainKHR swapChain;
     std::vector<VkImage> swapChainImages;
     std::vector<VkImageView> swapChainImageViews;
@@ -1253,6 +1287,7 @@ private:
     VkPipeline graphicsPipeline;
     std::vector<VkFramebuffer> swapChainFramebuffers;
     VkCommandPool commandPool;
+    VkCommandPool transferCommandPool;
     std::vector<VkCommandBuffer> commandBuffers;
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
