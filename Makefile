@@ -1,4 +1,4 @@
-CFLAGS = -std=c++17
+CFLAGS = -std=c++17 -Itools/stb
 LDFLAGS = `pkg-config --static --libs glfw3` -lvulkan
 
 Application: main.cpp shaders/vert.spv shaders/frag.spv
