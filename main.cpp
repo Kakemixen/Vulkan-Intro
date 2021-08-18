@@ -1249,6 +1249,17 @@ private:
                 && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
         {
             barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barrier.srcQueueFamilyIndex = queueFamilyIndices.transferFamily.value();
+            barrier.dstQueueFamilyIndex = queueFamilyIndices.transferFamily.value();
+
+            sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        }
+        else if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+        {
+            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
             barrier.srcQueueFamilyIndex = queueFamilyIndices.transferFamily.value();
             barrier.dstQueueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
@@ -1342,6 +1353,10 @@ private:
         transitionImageLayout(textureImage, 
                 VK_FORMAT_R8G8B8A8_SRGB,
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        transitionImageLayout(textureImage, 
+                VK_FORMAT_R8G8B8A8_SRGB,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         vkDestroyBuffer(device, stagingBuffer, nullptr);
