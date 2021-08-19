@@ -1,3 +1,6 @@
 [submodule "tools/stb"]
 	path = tools/stb
 	url = https://github.com/nothings/stb.git
+[submodule "tools/tinyobjloader"]
+	path = tools/tinyobjloader
+	url = https://github.com/tinyobjloader/tinyobjloader.git
