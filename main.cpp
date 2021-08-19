@@ -336,6 +336,7 @@ private:
                 imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+            std::cout << "recreating swap chain out of date\n";
             reCreateSwapChain();
             return;
         }
@@ -388,7 +389,9 @@ private:
                 || result == VK_SUBOPTIMAL_KHR
                 || framebufferResized) 
         {
+            std::cout << "recreating swap chain - result: " << result << ", framebufferResized: " << framebufferResized << "\n";
             reCreateSwapChain();
+            framebufferResized = false;
         }
         else if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to acquire swap chain image!");
@@ -810,7 +813,6 @@ private:
 
     void reCreateSwapChain()
     {
-        std::cout << "recreating swap chain\n";
         int width = 0, height = 0;
         glfwGetFramebufferSize(window, &width, &height);
         while (width == 0 || height == 0) {
@@ -1978,6 +1980,7 @@ static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
     auto app = reinterpret_cast<HelloTriangleApplication*>(
             glfwGetWindowUserPointer(window));
+    std::cout << "resized to: [" << width << ", " << height << "]\n";
     app->framebufferResized = true;
 }
 
