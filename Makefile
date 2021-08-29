@@ -1,22 +1,39 @@
-CFLAGS = -std=c++17 -Itools/stb -Itools/tinyobjloader
-LDFLAGS = `pkg-config --static --libs glfw3` -lvulkan
+CFLAGS := -std=c++17 -Itools/stb -Itools/tinyobjloader
+LDFLAGS := `pkg-config --static --libs glfw3` -lvulkan
+CC := g++
+GLSLC := glslc
+ODIR := build
 
-Application: main.cpp shaders/vert.spv shaders/frag.spv
-	g++ $(CFLAGS) -o Application main.cpp $(LDFLAGS)
+sources = $(wildcard *.cpp)
+objs = $(patsubst %.cpp, $(ODIR)/%.o, $(sources))
 
-shaders/vert.spv: shaders/shader.vert
-	glslc shaders/shader.vert -o shaders/vert.spv
+vertexSources = $(wildcard shaders/*.vert)
+vertexObjs = $(patsubst %.vert, $(ODIR)/%.vert.spv, $(vertexSources))
+fragSources = $(wildcard shaders/*.frag)
+fragObjs = $(patsubst %.frag, $(ODIR)/%.frag.spv, $(fragSources))
 
-shaders/frag.spv: shaders/shader.frag
-	glslc shaders/shader.frag -o shaders/frag.spv
+program = $(ODIR)/Application
 
+all: $(program) shaders
 
-.PHONY: run clean
+$(program): $(objs)
+	$(CC) $(LDFLAGS) $(objs) -o $(program)
+$(ODIR)/%.o : %.cpp | directories
+	$(CC) $(CFLAGS) -c $< -o $@
 
-run: Application
-	nixVulkanNvidia ./Application
+shaders: $(vertexObjs) $(fragObjs)
+$(ODIR)/%.vert.spv : %.vert | directories
+	$(GLSLC) $< -o $@
+$(ODIR)/%.frag.spv : %.frag | directories
+	$(GLSLC) $< -o $@
+
+directories:
+	@mkdir -p $(ODIR) $(ODIR)/shaders
+
+.PHONY: run clean all shaders
+
+run: all
+	nixVulkanNvidia $(ODIR)/Application
 
 clean:
-	rm -f Application
-	rm -f shaders/*.spv
-
+	rm -rf $(ODIR)
