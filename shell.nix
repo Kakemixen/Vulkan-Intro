@@ -20,6 +20,8 @@ pkgs.mkShell {
     pkgs.xorg.libX11
     pkgs.xorg.libXau
     pkgs.xorg.libXdmcp
+
+    pkgs.gdb
   ];
 
   VK_LAYER_PATH = "${pkgs.vulkan-validation-layers}/share/vulkan/explicit_layer.d";

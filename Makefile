@@ -1,4 +1,4 @@
-CFLAGS := -std=c++17 -Itools/stb -Itools/tinyobjloader
+CFLAGS := -std=c++17 -Itools/stb -Itools/tinyobjloader -g
 LDFLAGS := `pkg-config --static --libs glfw3` -lvulkan
 CC := g++
 GLSLC := glslc
@@ -30,10 +30,13 @@ $(ODIR)/%.frag.spv : %.frag | directories
 directories:
 	@mkdir -p $(ODIR) $(ODIR)/shaders
 
-.PHONY: run clean all shaders
+.PHONY: run gdb clean all shaders
 
 run: all
 	nixVulkanNvidia $(ODIR)/Application
+
+gdb: all
+	nixVulkanNvidia gdb $(ODIR)/Application
 
 clean:
 	rm -rf $(ODIR)
