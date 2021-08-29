@@ -4,7 +4,7 @@
 #include <optional>
 #include <vector>
 
-typedef struct GLFWwindow GLFWwindow;
+class MyWindow;
 
 struct SwapChainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
@@ -31,7 +31,7 @@ public:
     MyDevice();
     ~MyDevice();
 
-    void setupDevice(GLFWwindow* window);
+    void setupDevice(MyWindow* window);
     VkSampleCountFlagBits getMaxUsableSampleCount();
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
@@ -52,7 +52,7 @@ private:
     std::vector<const char*> getRequiredExtensions();
     void createSurface();
 
-    GLFWwindow* window;
+    MyWindow* window;
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
 

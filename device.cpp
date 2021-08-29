@@ -1,5 +1,6 @@
 #include "device.hpp"
 #include "utils.hpp"
+#include "window.hpp"
 
 //libs
 #include <vulkan/vulkan.h>
@@ -25,6 +26,7 @@ const std::vector<const char*> validationLayers = {
 
 MyDevice::MyDevice()
 { }
+
 MyDevice::~MyDevice()
 { 
     vkDestroyDevice(device, nullptr);
@@ -34,7 +36,7 @@ MyDevice::~MyDevice()
     vkDestroyInstance(instance, nullptr);
 }
 
-void MyDevice::setupDevice(GLFWwindow* window)
+void MyDevice::setupDevice(MyWindow* window)
 {
     if (!window) {
         throw std::runtime_error("Need glfw3 window for device setup!");
@@ -403,7 +405,7 @@ void MyDevice::setupDebugmessenger() {
 
 void MyDevice::createSurface()
 {
-    if (glfwCreateWindowSurface(instance, window, nullptr, &surface)
+    if (glfwCreateWindowSurface(instance, window->window, nullptr, &surface)
             != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create window surface!");

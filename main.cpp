@@ -1,4 +1,5 @@
 #include "device.hpp"
+#include "window.hpp"
 
 //libs
 #include <vulkan/vulkan_core.h>
@@ -37,14 +38,10 @@
 //local
 #include "utils.hpp"
 
-const std::uint32_t WIDTH = 800;
-const std::uint32_t HEIGHT = 600;
-
 const std::string MODEL_PATH = "models/viking_room.obj";
 const std::string TEXTURE_PATH = "textures/viking_room.png";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
-
 
 struct Vertex {
     glm::vec3 pos;
@@ -107,33 +104,21 @@ struct UniformBufferObject {
 
 
 
-static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
-
 class HelloTriangleApplication
 {
 public:
     void run() {
-        initWindow();
+        window.initWindow();
         initVulkan();
         mainLoop();
         cleanup();
     }
 
 private:
-    void initWindow()
-    {
-        glfwInit();
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-
-        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-        glfwSetWindowUserPointer(window, this);
-        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-    }
 
     void initVulkan() 
     {
-        device.setupDevice(window);
+        device.setupDevice(&window);
         msaaSamples = device.getMaxUsableSampleCount();
         createSwapChain();
         createImageViews();
@@ -160,7 +145,7 @@ private:
 
     void mainLoop() 
     {
-        while (!glfwWindowShouldClose(window)) {
+        while (!window.shouldClose()) {
             glfwPollEvents();
             drawFrame();
         }
@@ -187,7 +172,6 @@ private:
         }
         vkDestroyCommandPool(device.device, commandPool, nullptr);
         vkDestroyCommandPool(device.device, transferCommandPool, nullptr);
-        glfwDestroyWindow(window);
         glfwTerminate();
     }
 
@@ -281,11 +265,10 @@ private:
         result = vkQueuePresentKHR(device.presentQueue, &presentInfo);
         if (result == VK_ERROR_OUT_OF_DATE_KHR 
                 || result == VK_SUBOPTIMAL_KHR
-                || framebufferResized) 
+                || window.wasResized()) 
         {
-            std::cout << "recreating swap chain - result: " << result << ", framebufferResized: " << framebufferResized << "\n";
             reCreateSwapChain();
-            framebufferResized = false;
+            window.resetResizedFlag();
         }
         else if (result != VK_SUCCESS) {
             throw std::runtime_error("failed to acquire swap chain image!");
@@ -352,12 +335,7 @@ private:
             return capabilities.currentExtent; //TODO figure out why?
         }
         else {
-            int width, height;
-            glfwGetFramebufferSize(window, &width, &height);
-            VkExtent2D actualExtent = {
-                static_cast<uint32_t>(width),
-                static_cast<uint32_t>(height)
-            };
+            VkExtent2D actualExtent = window.getExtent();
             actualExtent.width =
                 std::max(capabilities.minImageExtent.width,
                 std::min(capabilities.maxImageExtent.width,
@@ -434,10 +412,9 @@ private:
 
     void reCreateSwapChain()
     {
-        int width = 0, height = 0;
-        glfwGetFramebufferSize(window, &width, &height);
-        while (width == 0 || height == 0) {
-            glfwGetFramebufferSize(window, &width, &height);
+        VkExtent2D extent = window.getExtent();
+        while (extent.width == 0 || extent.height == 0) {
+            extent = window.getExtent();
             glfwWaitEvents();
         }
 
@@ -1701,7 +1678,7 @@ private:
     
 
 private:
-    GLFWwindow* window;
+    MyWindow window;
     MyDevice device;
     VkSwapchainKHR swapChain;
     std::vector<VkImage> swapChainImages;
@@ -1745,17 +1722,7 @@ private:
     VkImageView colorImageView;
 
 public:
-    bool framebufferResized = false;
 };
-
-static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
-{
-    auto app = reinterpret_cast<HelloTriangleApplication*>(
-            glfwGetWindowUserPointer(window));
-    std::cout << "resized to: [" << width << ", " << height << "]\n";
-    app->framebufferResized = true;
-}
-
 int main()
 {
     HelloTriangleApplication app;
