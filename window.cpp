@@ -45,7 +45,7 @@ void MyWindow::framebufferResizeCallback(GLFWwindow* window, int width, int heig
     std::cout << "resized to: [" << width << ", " << height << "]\n";
     myWindow->framebufferResized = true;
     myWindow->width = width;
-    myWindow->width = width;
+    myWindow->height = height;
 }
 
 bool MyWindow::wasResized()
