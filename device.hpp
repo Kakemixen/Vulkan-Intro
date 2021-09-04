@@ -35,6 +35,21 @@ public:
     VkSampleCountFlagBits getMaxUsableSampleCount();
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+    void createBuffer(VkDeviceSize size,
+            VkBufferUsageFlags usage,
+            VkMemoryPropertyFlags properties,
+            VkBuffer& buffer,
+            VkDeviceMemory& bufferMemory);
+    void copyBuffer(VkBuffer srcBuffer, 
+            VkBuffer dstBuffer, 
+            VkDeviceSize size);
+    void createCommandPool();
+    void createTransferCommandPool();
+    VkCommandBuffer beginSingleCommands(VkCommandPool& pool);
+    void endSingleCommands(VkCommandBuffer commandBuffer, 
+            VkCommandPool& pool, 
+            VkQueue queue);
 
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device;
@@ -42,6 +57,8 @@ public:
     VkQueue graphicsQueue;
     VkQueue presentQueue;
     VkQueue transferQueue;
+    VkCommandPool commandPool;
+    VkCommandPool transferCommandPool;
 
 private:
     void createInstance();

@@ -73,8 +73,8 @@ private:
         createRenderPass();
         createDescriptorSetLayout();
         createGraphicsPipeline();
-        createCommandPool();
-        createTransferCommandPool();
+        device.createCommandPool();
+        device.createTransferCommandPool();
         createColorResources();
         createDepthResources();
         createFramebuffers();
@@ -118,8 +118,6 @@ private:
             vkDestroySemaphore(device.device, imageAvailableSemaphores[i], nullptr);
             vkDestroyFence(device.device, inFlightFences[i], nullptr);
         }
-        vkDestroyCommandPool(device.device, commandPool, nullptr);
-        vkDestroyCommandPool(device.device, transferCommandPool, nullptr);
         glfwTerminate();
     }
 
@@ -135,7 +133,7 @@ private:
         for (auto framebuffer : swapChainFramebuffers) {
             vkDestroyFramebuffer(device.device, framebuffer, nullptr);
         }
-        vkFreeCommandBuffers(device.device, commandPool, 
+        vkFreeCommandBuffers(device.device, device.commandPool, 
                 static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
         vkDestroyPipeline(device.device, graphicsPipeline, nullptr);
         vkDestroyPipelineLayout(device.device, pipelineLayout, nullptr);
@@ -732,41 +730,6 @@ private:
         }
     }
 
-    /* * *
-     * create a commandpool, object responsible for managing comand buffers
-     */
-    void createCommandPool()
-    {
-        QueueFamilyIndices queueFamilyIndices = device.findQueueFamilies(device.physicalDevice);
-
-        VkCommandPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-        poolInfo.flags = 0;
-
-        if (vkCreateCommandPool(device.device, &poolInfo, nullptr, &commandPool)
-                != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create command pool!");
-        }
-    }
-
-    void createTransferCommandPool()
-    {
-        QueueFamilyIndices queueFamilyIndices = device.findQueueFamilies(device.physicalDevice);
-
-        VkCommandPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
-        poolInfo.flags = 0;
-
-        if (vkCreateCommandPool(device.device, &poolInfo, nullptr, &transferCommandPool)
-                != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create tranfer command pool!");
-        }
-    }
-
     VkFormat findSupportedFormat(
             const std::vector<VkFormat>& candidates,
             VkImageTiling tiling,
@@ -885,7 +848,7 @@ private:
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, 
+        allocInfo.memoryTypeIndex = device.findMemoryType(memRequirements.memoryTypeBits, 
                 properties);
                 
 
@@ -902,7 +865,7 @@ private:
             VkImageLayout newLayout,
             uint32_t mipLevels)
     {
-        VkCommandBuffer commandBuffer = beginSingleCommands(transferCommandPool);
+        VkCommandBuffer commandBuffer = device.beginSingleCommands(device.transferCommandPool);
 
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -998,12 +961,12 @@ private:
                 0, nullptr,
                 1, &barrier);
 
-        endSingleCommands(commandBuffer, transferCommandPool, device.transferQueue);
+        device.endSingleCommands(commandBuffer, device.transferCommandPool, device.transferQueue);
     }
 
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
     {
-        VkCommandBuffer commandBuffer = beginSingleCommands(transferCommandPool);
+        VkCommandBuffer commandBuffer = device.beginSingleCommands(device.transferCommandPool);
 
         VkBufferImageCopy region{};
         region.bufferOffset = 0;
@@ -1027,7 +990,7 @@ private:
                 1, 
                 &region);
 
-        endSingleCommands(commandBuffer, transferCommandPool, device.transferQueue);
+        device.endSingleCommands(commandBuffer, device.transferCommandPool, device.transferQueue);
     }
 
     void generateMipmaps(VkImage image,
@@ -1036,7 +999,7 @@ private:
             int32_t texHeight,
             uint32_t mipLevels)
     {
-        VkCommandBuffer commandBuffer = beginSingleCommands(commandPool);
+        VkCommandBuffer commandBuffer = device.beginSingleCommands(device.commandPool);
 
         VkFormatProperties formatProperties;
         vkGetPhysicalDeviceFormatProperties(device.physicalDevice, format, &formatProperties);
@@ -1122,7 +1085,7 @@ private:
                 0, nullptr,
                 1, &barrier);
 
-        endSingleCommands(commandBuffer, commandPool, device.graphicsQueue);
+        device.endSingleCommands(commandBuffer, device.commandPool, device.graphicsQueue);
     }
 
     void createTextureImage()
@@ -1138,7 +1101,7 @@ private:
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
-        createBuffer(imageSize, 
+        device.createBuffer(imageSize, 
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 stagingBuffer, 
@@ -1241,47 +1204,6 @@ private:
         }
     }
 
-    void createBuffer(VkDeviceSize size,
-            VkBufferUsageFlags usage,
-            VkMemoryPropertyFlags properties,
-            VkBuffer& buffer,
-            VkDeviceMemory& bufferMemory)
-    {
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = size;
-        bufferInfo.usage = usage;
-
-        QueueFamilyIndices indices = device.findQueueFamilies(device.physicalDevice);
-        bufferInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
-        uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.transferFamily.value()};
-        bufferInfo.queueFamilyIndexCount = 2;
-        bufferInfo.pQueueFamilyIndices = queueFamilyIndices;
-
-
-        if (vkCreateBuffer(device.device, &bufferInfo, nullptr, &buffer)
-                != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create vertex buffer!");
-        }
-
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(device.device, buffer, &memRequirements);
-
-        VkMemoryAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
-
-        if (vkAllocateMemory(device.device, &allocInfo, nullptr, &bufferMemory) 
-                != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to allocate vertex buffer memory!");
-        }
-
-        vkBindBufferMemory(device.device, buffer, bufferMemory, 0);
-    }
-
     void loadModel()
     {
         tinyobj::attrib_t attrib;
@@ -1326,7 +1248,7 @@ private:
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
-        createBuffer(
+        device.createBuffer(
                 bufferSize, 
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -1338,14 +1260,14 @@ private:
         memcpy(data, vertices.data(), (size_t) bufferSize);
         vkUnmapMemory(device.device, stagingBufferMemory);
 
-        createBuffer(
+        device.createBuffer(
                 bufferSize,
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 vertexBuffer,
                 vertexBufferMemory);
 
-        copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+        device.copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
         vkDestroyBuffer(device.device, stagingBuffer, nullptr);
         vkFreeMemory(device.device, stagingBufferMemory, nullptr);
     }
@@ -1356,7 +1278,7 @@ private:
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
-        createBuffer(
+        device.createBuffer(
                 bufferSize, 
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -1368,14 +1290,14 @@ private:
         memcpy(data, indices.data(), (size_t) bufferSize);
         vkUnmapMemory(device.device, stagingBufferMemory);
 
-        createBuffer(
+        device.createBuffer(
                 bufferSize,
                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 indexBuffer,
                 indexBufferMemory);
 
-        copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+        device.copyBuffer(stagingBuffer, indexBuffer, bufferSize);
         vkDestroyBuffer(device.device, stagingBuffer, nullptr);
         vkFreeMemory(device.device, stagingBufferMemory, nullptr);
     }
@@ -1388,7 +1310,7 @@ private:
         uniformBuffersMemory.resize(swapChainImages.size());
 
         for (size_t i = 0; i < swapChainImages.size(); i++) {
-            createBuffer(bufferSize,
+            device.createBuffer(bufferSize,
                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                     uniformBuffers[i],
@@ -1473,62 +1395,6 @@ private:
         }
     }
 
-    VkCommandBuffer beginSingleCommands(VkCommandPool& pool)
-    {
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = pool;
-        allocInfo.commandBufferCount = 1;
-
-        VkCommandBuffer commandBuffer;
-        vkAllocateCommandBuffers(device.device, &allocInfo, &commandBuffer);
-
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-        vkBeginCommandBuffer(commandBuffer, &beginInfo);
-        return commandBuffer;
-    }
-
-    void endSingleCommands(VkCommandBuffer commandBuffer, VkCommandPool& pool, VkQueue queue)
-    {
-        vkEndCommandBuffer(commandBuffer);
-
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
-        vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(queue);
-        vkFreeCommandBuffers(device.device, pool, 1, &commandBuffer);
-    }
-
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
-    {
-        VkCommandBuffer commandBuffer = beginSingleCommands(transferCommandPool);
-        VkBufferCopy copyRegion;
-        copyRegion.srcOffset = 0;
-        copyRegion.dstOffset = 0;
-        copyRegion.size = size;
-        vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-        endSingleCommands(commandBuffer, transferCommandPool, device.transferQueue);
-    }
-
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
-    {
-        VkPhysicalDeviceMemoryProperties memProperties;
-        vkGetPhysicalDeviceMemoryProperties(device.physicalDevice, &memProperties);
-        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-            if (typeFilter & (1 << i)
-                    && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) 
-            {
-                return i;
-            }
-        }
-        throw std::runtime_error("failed to find suitable memory type!");
-    }
 
     /* * *
      * Commandbuffers are responsible for holding a set of operations to be applied during rendering
@@ -1539,7 +1405,7 @@ private:
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = commandPool;
+        allocInfo.commandPool = device.commandPool;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
 
@@ -1640,8 +1506,6 @@ private:
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
     std::vector<VkFramebuffer> swapChainFramebuffers;
-    VkCommandPool commandPool;
-    VkCommandPool transferCommandPool;
     std::vector<VkCommandBuffer> commandBuffers;
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
