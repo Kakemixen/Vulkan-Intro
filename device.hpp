@@ -6,6 +6,7 @@
 //std
 #include <optional>
 #include <vector>
+#include <map>
 
 class MyWindow;
 
@@ -26,6 +27,13 @@ struct QueueFamilyIndices
             presentFamily.has_value() && 
             transferFamily.has_value();
     }
+};
+
+enum class DeviceQueue
+{
+    Graphics,
+    Present,
+    Transfer
 };
 
 class MyDevice 
@@ -52,7 +60,7 @@ public:
     VkCommandBuffer beginSingleCommands(VkCommandPool& pool);
     void endSingleCommands(VkCommandBuffer commandBuffer, 
             VkCommandPool& pool, 
-            VkQueue queue);
+            DeviceQueue queue);
     VkImageView createImageView(
         VkImage image, 
         VkFormat format, 
@@ -76,13 +84,16 @@ public:
     void copyBufferToImage(VkBuffer buffer, 
             VkImage image, 
             uint32_t width, uint32_t height);
+    void queueSubmit(
+            DeviceQueue queue,
+            uint32_t submitCount,
+            const VkSubmitInfo* pSubmits,
+            VkFence fence);
+    VkResult present(const VkPresentInfoKHR* pPresentInfo);
 
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device;
     VkSurfaceKHR surface;
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
-    VkQueue transferQueue;
     VkCommandPool commandPool;
     VkCommandPool transferCommandPool;
 
@@ -102,6 +113,7 @@ private:
     MyWindow* window;
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
+    std::map<DeviceQueue, VkQueue> queueMap;
 
 #ifdef NDEBUG
     const bool enableValidationLayers = false;

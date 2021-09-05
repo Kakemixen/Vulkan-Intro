@@ -198,7 +198,7 @@ void MyTexture::generateMipmaps(VkImage image,
             0, nullptr,
             1, &barrier);
 
-    device.endSingleCommands(commandBuffer, device.commandPool, device.graphicsQueue);
+    device.endSingleCommands(commandBuffer, device.commandPool, DeviceQueue::Graphics);
 }
 
 VkDescriptorImageInfo MyTexture::getImageInfo()

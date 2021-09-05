@@ -170,11 +170,7 @@ private:
         submitInfo.pSignalSemaphores = signalSemaphores;
 
         vkResetFences(device.device, 1, &inFlightFences[currentFrame]);
-        if(vkQueueSubmit(device.graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) 
-                != VK_SUCCESS) 
-        {
-            throw std::runtime_error("failed to submit draw command buffer!");
-        }
+        device.queueSubmit(DeviceQueue::Graphics, 1, &submitInfo, inFlightFences[currentFrame]);
 
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -187,7 +183,7 @@ private:
         presentInfo.pImageIndices = &imageIndex;
         presentInfo.pResults = nullptr;
 
-        result = vkQueuePresentKHR(device.presentQueue, &presentInfo);
+        result = device.present(&presentInfo);
         if (result == VK_ERROR_OUT_OF_DATE_KHR 
                 || result == VK_SUBOPTIMAL_KHR
                 || window.wasResized()) 
@@ -200,7 +196,6 @@ private:
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
-        // vkQueueWaitIdle(presentQueue); // not optimal
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 

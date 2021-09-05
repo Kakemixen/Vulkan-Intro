@@ -132,9 +132,14 @@ void MyDevice::createLogicalDevice()
     }
 
     // get a handle to the queuew we will use
-    vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-    vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
-    vkGetDeviceQueue(device, indices.transferFamily.value(), 0, &transferQueue);
+    queueMap = {
+        {DeviceQueue::Graphics, VkQueue()},
+        {DeviceQueue::Present,  VkQueue()},
+        {DeviceQueue::Transfer, VkQueue()}
+    };
+    vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &queueMap[DeviceQueue::Graphics]);
+    vkGetDeviceQueue(device, indices.presentFamily.value(), 0,  &queueMap[DeviceQueue::Present]);
+    vkGetDeviceQueue(device, indices.transferFamily.value(), 0, &queueMap[DeviceQueue::Transfer]);
 }
 
 int MyDevice::rateDeviceSuitability(VkPhysicalDevice device)
@@ -488,16 +493,39 @@ VkCommandBuffer MyDevice::beginSingleCommands(VkCommandPool& pool)
     return commandBuffer;
 }
 
-void MyDevice::endSingleCommands(VkCommandBuffer commandBuffer, VkCommandPool& pool, VkQueue queue)
+void MyDevice::queueSubmit(DeviceQueue queue,
+            uint32_t submitCount,
+            const VkSubmitInfo* pSubmitInfo,
+            VkFence fence)
 {
+    VkQueue _queue = queueMap[queue];
+
+    if(vkQueueSubmit(_queue, submitCount, pSubmitInfo, fence) 
+            != VK_SUCCESS) 
+    {
+        throw std::runtime_error("failed to submit draw command buffer!");
+    }
+}
+
+VkResult MyDevice::present(const VkPresentInfoKHR* pPresentInfo)
+{
+    return vkQueuePresentKHR(queueMap[DeviceQueue::Present], pPresentInfo);
+}
+
+void MyDevice::endSingleCommands(VkCommandBuffer commandBuffer, 
+        VkCommandPool& pool, 
+        DeviceQueue queue)
+{
+    VkQueue _queue = queueMap[queue];
+
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
-    vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(queue);
+    vkQueueSubmit(_queue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(_queue);
     vkFreeCommandBuffers(device, pool, 1, &commandBuffer);
 }
 
@@ -510,7 +538,7 @@ void MyDevice::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize s
     copyRegion.dstOffset = 0;
     copyRegion.size = size;
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-    endSingleCommands(commandBuffer, transferCommandPool, transferQueue);
+    endSingleCommands(commandBuffer, transferCommandPool, DeviceQueue::Transfer);
 }
 
 void MyDevice::createCommandPool()
@@ -757,7 +785,7 @@ void MyDevice::transitionImageLayout(VkImage image,
             0, nullptr,
             1, &barrier);
 
-    endSingleCommands(commandBuffer, transferCommandPool, transferQueue);
+    endSingleCommands(commandBuffer, transferCommandPool, DeviceQueue::Transfer);
 }
 
 void MyDevice::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
@@ -786,5 +814,5 @@ void MyDevice::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
             1, 
             &region);
 
-    endSingleCommands(commandBuffer, transferCommandPool, transferQueue);
+    endSingleCommands(commandBuffer, transferCommandPool, DeviceQueue::Transfer);
 }
