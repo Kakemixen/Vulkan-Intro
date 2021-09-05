@@ -1,5 +1,9 @@
+#pragma once
+
+//libs
 #include <vulkan/vulkan.h>
 
+//std
 #include <vector>
 
 class MyDevice;

@@ -1,3 +1,6 @@
+#pragma once
+
+//libs
 #include <vulkan/vulkan.h>
 
 //std
