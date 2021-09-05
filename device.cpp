@@ -29,8 +29,9 @@ MyDevice::MyDevice()
 
 MyDevice::~MyDevice()
 { 
-    vkDestroyCommandPool(device, commandPool, nullptr);
-    vkDestroyCommandPool(device, transferCommandPool, nullptr);
+    for (auto& [key, pool] : poolMap) {
+        vkDestroyCommandPool(device, pool, nullptr);
+    }
     vkDestroyDevice(device, nullptr);
     if (enableValidationLayers)
         proxyDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
@@ -474,8 +475,9 @@ void MyDevice::createBuffer(VkDeviceSize size,
     vkBindBufferMemory(device, buffer, bufferMemory, 0);
 }
 
-VkCommandBuffer MyDevice::beginSingleCommands(VkCommandPool& pool)
-{
+VkCommandBuffer MyDevice::beginSingleCommands(CommandPool poolEnum)
+{ 
+    VkCommandPool& pool = poolMap[poolEnum];
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -513,10 +515,11 @@ VkResult MyDevice::present(const VkPresentInfoKHR* pPresentInfo)
 }
 
 void MyDevice::endSingleCommands(VkCommandBuffer commandBuffer, 
-        VkCommandPool& pool, 
+        CommandPool poolEnum,
         DeviceQueue queue)
 {
     VkQueue _queue = queueMap[queue];
+    VkCommandPool& pool = poolMap[poolEnum];
 
     vkEndCommandBuffer(commandBuffer);
 
@@ -532,13 +535,13 @@ void MyDevice::endSingleCommands(VkCommandBuffer commandBuffer,
 
 void MyDevice::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
-    VkCommandBuffer commandBuffer = beginSingleCommands(transferCommandPool);
+    VkCommandBuffer commandBuffer = beginSingleCommands(CommandPool::Transfer);
     VkBufferCopy copyRegion;
     copyRegion.srcOffset = 0;
     copyRegion.dstOffset = 0;
     copyRegion.size = size;
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-    endSingleCommands(commandBuffer, transferCommandPool, DeviceQueue::Transfer);
+    endSingleCommands(commandBuffer, CommandPool::Transfer, DeviceQueue::Transfer);
 }
 
 void MyDevice::createCommandPool()
@@ -550,7 +553,8 @@ void MyDevice::createCommandPool()
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
     poolInfo.flags = 0;
 
-    if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool)
+    poolMap[CommandPool::Command] = VkCommandPool();
+    if (vkCreateCommandPool(device, &poolInfo, nullptr, &poolMap[CommandPool::Command])
             != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create command pool!");
@@ -566,7 +570,8 @@ void MyDevice::createTransferCommandPool()
     poolInfo.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
     poolInfo.flags = 0;
 
-    if (vkCreateCommandPool(device, &poolInfo, nullptr, &transferCommandPool)
+    poolMap[CommandPool::Transfer] = VkCommandPool();
+    if (vkCreateCommandPool(device, &poolInfo, nullptr, &poolMap[CommandPool::Transfer])
             != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create tranfer command pool!");
@@ -689,7 +694,7 @@ void MyDevice::transitionImageLayout(VkImage image,
         VkImageLayout newLayout,
         uint32_t mipLevels)
 {
-    VkCommandBuffer commandBuffer = beginSingleCommands(transferCommandPool);
+    VkCommandBuffer commandBuffer = beginSingleCommands(CommandPool::Transfer);
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -785,12 +790,12 @@ void MyDevice::transitionImageLayout(VkImage image,
             0, nullptr,
             1, &barrier);
 
-    endSingleCommands(commandBuffer, transferCommandPool, DeviceQueue::Transfer);
+    endSingleCommands(commandBuffer, CommandPool::Transfer, DeviceQueue::Transfer);
 }
 
 void MyDevice::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
 {
-    VkCommandBuffer commandBuffer = beginSingleCommands(transferCommandPool);
+    VkCommandBuffer commandBuffer = beginSingleCommands(CommandPool::Transfer);
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -814,5 +819,26 @@ void MyDevice::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
             1, 
             &region);
 
-    endSingleCommands(commandBuffer, transferCommandPool, DeviceQueue::Transfer);
+    endSingleCommands(commandBuffer, CommandPool::Transfer, DeviceQueue::Transfer);
+}
+
+void MyDevice::allocateCommandBuffers(std::vector<VkCommandBuffer>* commandBuffers)
+{
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = poolMap[CommandPool::Command];
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = (uint32_t) commandBuffers->size();
+
+        if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers->data())
+                != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to allocate command buffers!");
+        }
+}
+
+void MyDevice::freeCommandBuffers(std::vector<VkCommandBuffer>* commandBuffers)
+{
+    vkFreeCommandBuffers(device, poolMap[CommandPool::Command], 
+            static_cast<uint32_t>(commandBuffers->size()), commandBuffers->data());
 }

@@ -36,6 +36,12 @@ enum class DeviceQueue
     Transfer
 };
 
+enum class CommandPool
+{
+    Command,
+    Transfer
+};
+
 class MyDevice 
 {
 public:
@@ -57,9 +63,9 @@ public:
             VkDeviceSize size);
     void createCommandPool();
     void createTransferCommandPool();
-    VkCommandBuffer beginSingleCommands(VkCommandPool& pool);
+    VkCommandBuffer beginSingleCommands(CommandPool poolEnum);
     void endSingleCommands(VkCommandBuffer commandBuffer, 
-            VkCommandPool& pool, 
+            CommandPool poolEnum,
             DeviceQueue queue);
     VkImageView createImageView(
         VkImage image, 
@@ -90,12 +96,12 @@ public:
             const VkSubmitInfo* pSubmits,
             VkFence fence);
     VkResult present(const VkPresentInfoKHR* pPresentInfo);
+    void allocateCommandBuffers(std::vector<VkCommandBuffer>* commandBuffers);
+    void freeCommandBuffers(std::vector<VkCommandBuffer>* commandBuffers);
 
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device;
     VkSurfaceKHR surface;
-    VkCommandPool commandPool;
-    VkCommandPool transferCommandPool;
 
 private:
     void createInstance();
@@ -113,6 +119,7 @@ private:
     MyWindow* window;
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
+    std::map<CommandPool, VkCommandPool> poolMap;
     std::map<DeviceQueue, VkQueue> queueMap;
 
 #ifdef NDEBUG

@@ -112,7 +112,7 @@ void MyTexture::generateMipmaps(VkImage image,
             int32_t texHeight,
             uint32_t mipLevels)
 {
-    VkCommandBuffer commandBuffer = device.beginSingleCommands(device.commandPool);
+    VkCommandBuffer commandBuffer = device.beginSingleCommands(CommandPool::Command);
 
     VkFormatProperties formatProperties;
     vkGetPhysicalDeviceFormatProperties(device.physicalDevice, format, &formatProperties);
@@ -198,7 +198,7 @@ void MyTexture::generateMipmaps(VkImage image,
             0, nullptr,
             1, &barrier);
 
-    device.endSingleCommands(commandBuffer, device.commandPool, DeviceQueue::Graphics);
+    device.endSingleCommands(commandBuffer, CommandPool::Command, DeviceQueue::Graphics);
 }
 
 VkDescriptorImageInfo MyTexture::getImageInfo()

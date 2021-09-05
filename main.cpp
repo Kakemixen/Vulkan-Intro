@@ -117,8 +117,7 @@ private:
     void cleanupSwapChain()
     {
         swapchain.cleanup();
-        vkFreeCommandBuffers(device.device, device.commandPool, 
-                static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+        device.freeCommandBuffers(&commandBuffers);
         pipeline.destroyGraphicsPipeline();
 
         for (size_t i = 0; i < swapchain.size(); i++) {
@@ -386,17 +385,7 @@ private:
     {
         commandBuffers.resize(swapchain.size());
 
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = device.commandPool;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
-
-        if (vkAllocateCommandBuffers(device.device, &allocInfo, commandBuffers.data())
-                != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to allocate command buffers!");
-        }
+        device.allocateCommandBuffers(&commandBuffers);
 
         for (size_t i = 0; i < commandBuffers.size(); i++) {
             VkCommandBufferBeginInfo beginInfo{};
