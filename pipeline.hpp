@@ -12,20 +12,22 @@ class MySwapChain;
 class MyPipeline
 {
 public:
-    MyPipeline(MyDevice& device);
-    ~MyPipeline();
-
-    void createGraphicsPipeline(
+    MyPipeline(MyDevice& device,
         VkDescriptorSetLayout* pDescriptorSetLayout,
         VkSampleCountFlagBits msaaSamples,
         const MySwapChain& swapchain);
-    void destroyGraphicsPipeline();
+    ~MyPipeline();
+
     void bind(VkCommandBuffer commandBuffer,
         VkDescriptorSet* pDescriptorSet);
 
 
 private:
     VkShaderModule createShaderModule(const std::vector<char>& code);
+    void createGraphicsPipeline(
+        VkDescriptorSetLayout* pDescriptorSetLayout,
+        VkSampleCountFlagBits msaaSamples,
+        const MySwapChain& swapchain);
 
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;

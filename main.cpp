@@ -31,6 +31,7 @@
 #include <array>
 #include <chrono>
 #include <unordered_map>
+#include <memory>
 
 //cstd
 #include <unistd.h>
@@ -73,7 +74,8 @@ private:
         swapchain.createImageViews();
         swapchain.createRenderPass();
         createDescriptorSetLayout();
-        pipeline.createGraphicsPipeline(&descriptorSetLayout, msaaSamples, swapchain);
+        pipeline = std::make_unique<MyPipeline>(device,
+                &descriptorSetLayout, msaaSamples, swapchain);
         device.createCommandPool();
         device.createTransferCommandPool();
         swapchain.createColorResources();
@@ -118,7 +120,6 @@ private:
     {
         swapchain.cleanup();
         device.freeCommandBuffers(&commandBuffers);
-        pipeline.destroyGraphicsPipeline();
 
         for (size_t i = 0; i < swapchain.size(); i++) {
             vkDestroyBuffer(device.device, uniformBuffers[i], nullptr);
@@ -241,7 +242,8 @@ private:
         swapchain.createSwapChain(window.getExtent());
         swapchain.createImageViews();
         swapchain.createRenderPass();
-        pipeline.createGraphicsPipeline(&descriptorSetLayout, msaaSamples, swapchain);
+        pipeline = std::make_unique<MyPipeline>(device,
+                &descriptorSetLayout, msaaSamples, swapchain);
         swapchain.createColorResources();
         swapchain.createDepthResources();
         swapchain.createFramebuffers();
@@ -398,7 +400,7 @@ private:
             }
 
             swapchain.beginRenderPass(commandBuffers[i], i);
-            pipeline.bind(commandBuffers[i], &descriptorSets[i]);
+            pipeline->bind(commandBuffers[i], &descriptorSets[i]);
             model.bind(commandBuffers[i]);
             model.draw(commandBuffers[i]);
             swapchain.endRenderPass(commandBuffers[i]);
@@ -449,7 +451,7 @@ private:
     MyDevice device;
     MyModel model{device};
     MySwapChain swapchain{device};
-    MyPipeline pipeline{device};
+    std::unique_ptr<MyPipeline> pipeline;
     MyTexture texture{device};
     VkDescriptorSetLayout descriptorSetLayout;
     VkDescriptorPool descriptorPool;

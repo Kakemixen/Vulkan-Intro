@@ -10,12 +10,21 @@
 //std
 #include <stdexcept>
 
-MyPipeline::MyPipeline(MyDevice& device)
-    :device(device)
-{ }
+MyPipeline::MyPipeline(MyDevice& device,
+        VkDescriptorSetLayout* pDescriptorSetLayout,
+        VkSampleCountFlagBits msaaSamples,
+        const MySwapChain& swapchain)
+    : device(device)
+{ 
+    createGraphicsPipeline(pDescriptorSetLayout,
+            msaaSamples, swapchain);
+}
 
 MyPipeline::~MyPipeline() 
-{}
+{
+    vkDestroyPipeline(device.device, graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(device.device, pipelineLayout, nullptr);
+}
 
 
 
@@ -33,12 +42,6 @@ VkShaderModule MyPipeline::createShaderModule(const std::vector<char>& code)
         throw std::runtime_error("failed to create shader module!");
     }
     return shaderModule;
-}
-
-void MyPipeline::destroyGraphicsPipeline()
-{
-        vkDestroyPipeline(device.device, graphicsPipeline, nullptr);
-        vkDestroyPipelineLayout(device.device, pipelineLayout, nullptr);
 }
 
 void MyPipeline::createGraphicsPipeline(
