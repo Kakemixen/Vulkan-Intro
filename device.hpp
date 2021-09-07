@@ -90,7 +90,7 @@ public:
     void copyBufferToImage(VkBuffer buffer, 
             VkImage image, 
             uint32_t width, uint32_t height);
-    void queueSubmit(
+    VkResult queueSubmit(
             DeviceQueue queue,
             uint32_t submitCount,
             const VkSubmitInfo* pSubmits,

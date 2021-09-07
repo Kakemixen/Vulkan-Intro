@@ -496,18 +496,14 @@ VkCommandBuffer MyDevice::beginSingleCommands(CommandPool poolEnum)
     return commandBuffer;
 }
 
-void MyDevice::queueSubmit(DeviceQueue queue,
+VkResult MyDevice::queueSubmit(DeviceQueue queue,
             uint32_t submitCount,
             const VkSubmitInfo* pSubmitInfo,
             VkFence fence)
 {
     VkQueue _queue = queueMap[queue];
 
-    if(vkQueueSubmit(_queue, submitCount, pSubmitInfo, fence) 
-            != VK_SUCCESS) 
-    {
-        throw std::runtime_error("failed to submit draw command buffer!");
-    }
+    return vkQueueSubmit(_queue, submitCount, pSubmitInfo, fence);
 }
 
 VkResult MyDevice::present(const VkPresentInfoKHR* pPresentInfo)
