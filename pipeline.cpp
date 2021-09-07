@@ -13,11 +13,12 @@
 MyPipeline::MyPipeline(MyDevice& device,
         VkDescriptorSetLayout* pDescriptorSetLayout,
         VkSampleCountFlagBits msaaSamples,
-        const MySwapChain& swapchain)
+        VkExtent2D swapChainExtent,
+        VkRenderPass renderPass)
     : device(device)
 { 
     createGraphicsPipeline(pDescriptorSetLayout,
-            msaaSamples, swapchain);
+            msaaSamples, swapChainExtent, renderPass);
 }
 
 MyPipeline::~MyPipeline() 
@@ -47,7 +48,8 @@ VkShaderModule MyPipeline::createShaderModule(const std::vector<char>& code)
 void MyPipeline::createGraphicsPipeline(
         VkDescriptorSetLayout* pDescriptorSetLayout,
         VkSampleCountFlagBits msaaSamples,
-        const MySwapChain& swapchain)
+        VkExtent2D swapChainExtent,
+        VkRenderPass renderPass)
 {
     auto vertShaderCode = readFile("build/shaders/shader.vert.spv");
     auto fragShaderCode = readFile("build/shaders/shader.frag.spv");
@@ -93,14 +95,14 @@ void MyPipeline::createGraphicsPipeline(
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = (float) swapchain.swapChainExtent.width;
-    viewport.height = (float) swapchain.swapChainExtent.height;
+    viewport.width = (float) swapChainExtent.width;
+    viewport.height = (float)swapChainExtent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor{};
     scissor.offset = {0, 0};
-    scissor.extent = swapchain.swapChainExtent;
+    scissor.extent = swapChainExtent;
 
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -201,7 +203,7 @@ void MyPipeline::createGraphicsPipeline(
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = nullptr;
     pipelineInfo.layout = pipelineLayout;
-    pipelineInfo.renderPass = swapchain.renderPass;
+    pipelineInfo.renderPass = renderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;

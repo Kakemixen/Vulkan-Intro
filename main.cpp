@@ -68,19 +68,15 @@ private:
     void initVulkan() 
     {
         device.setupDevice(&window);
-        msaaSamples = device.getMaxUsableSampleCount();
-        swapchain.msaaSamples = msaaSamples;
-        swapchain.createSwapChain(window.getExtent());
-        swapchain.createImageViews();
-        swapchain.createRenderPass();
-        createDescriptorSetLayout();
-        pipeline = std::make_unique<MyPipeline>(device,
-                &descriptorSetLayout, msaaSamples, swapchain);
         device.createCommandPool();
         device.createTransferCommandPool();
-        swapchain.createColorResources();
-        swapchain.createDepthResources();
-        swapchain.createFramebuffers();
+        msaaSamples = device.getMaxUsableSampleCount();
+        swapchain = std::make_unique<MySwapChain>(device,
+                window.getExtent(), msaaSamples);
+        createDescriptorSetLayout();
+        pipeline = std::make_unique<MyPipeline>(device,
+                &descriptorSetLayout, msaaSamples, 
+                swapchain->swapChainExtent, swapchain->renderPass);
         texture.createTextureImage(TEXTURE_PATH.c_str());
         texture.createTextureImageView();
         texture.createTextureSampler();
@@ -118,10 +114,9 @@ private:
 
     void cleanupSwapChain()
     {
-        swapchain.cleanup();
         device.freeCommandBuffers(&commandBuffers);
 
-        for (size_t i = 0; i < swapchain.size(); i++) {
+        for (size_t i = 0; i < swapchain->size(); i++) {
             vkDestroyBuffer(device.device, uniformBuffers[i], nullptr);
             vkFreeMemory(device.device, uniformBuffersMemory[i], nullptr);
         }
@@ -135,7 +130,7 @@ private:
         vkWaitForFences(device.device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
         uint32_t imageIndex;
-        VkResult result = vkAcquireNextImageKHR(device.device, swapchain.swapChain, UINT64_MAX,
+        VkResult result = vkAcquireNextImageKHR(device.device, swapchain->swapChain, UINT64_MAX,
                 imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -177,7 +172,7 @@ private:
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores = signalSemaphores;
 
-        VkSwapchainKHR swapChains[] = {swapchain.swapChain};
+        VkSwapchainKHR swapChains[] = {swapchain->swapChain};
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains;
         presentInfo.pImageIndices = &imageIndex;
@@ -212,7 +207,7 @@ private:
                 glm::vec3(0.f, 0.f, 0.f),
                 glm::vec3(0.f, 0.f, 1.f));
         ubo.proj = glm::perspective(glm::radians(45.f), 
-                swapchain.swapChainExtent.width / (float) swapchain.swapChainExtent.height, 
+                swapchain->swapChainExtent.width / (float) swapchain->swapChainExtent.height, 
                 0.1f, 10.f);
         ubo.proj[1][1] *= -1;
 
@@ -239,14 +234,13 @@ private:
 
         cleanupSwapChain();
 
-        swapchain.createSwapChain(window.getExtent());
-        swapchain.createImageViews();
-        swapchain.createRenderPass();
+        swapchain.reset();
+        swapchain = std::make_unique<MySwapChain>(device,
+                window.getExtent(), msaaSamples);
+        pipeline.reset();
         pipeline = std::make_unique<MyPipeline>(device,
-                &descriptorSetLayout, msaaSamples, swapchain);
-        swapchain.createColorResources();
-        swapchain.createDepthResources();
-        swapchain.createFramebuffers();
+                &descriptorSetLayout, msaaSamples, 
+                swapchain->swapChainExtent, swapchain->renderPass);
         createUniformBuffers();
         createDescriptorPool();
         createDescriptorSets();
@@ -293,10 +287,10 @@ private:
     {
         VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-        uniformBuffers.resize(swapchain.size());
-        uniformBuffersMemory.resize(swapchain.size());
+        uniformBuffers.resize(swapchain->size());
+        uniformBuffersMemory.resize(swapchain->size());
 
-        for (size_t i = 0; i < swapchain.size(); i++) {
+        for (size_t i = 0; i < swapchain->size(); i++) {
             device.createBuffer(bufferSize,
                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -309,15 +303,15 @@ private:
     {
         std::array<VkDescriptorPoolSize, 2> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapchain.size());
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapchain->size());
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapchain.size());
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapchain->size());
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = static_cast<uint32_t>(swapchain.size());
+        poolInfo.maxSets = static_cast<uint32_t>(swapchain->size());
 
         if (vkCreateDescriptorPool(device.device, &poolInfo, nullptr, &descriptorPool)
                 != VK_SUCCESS)
@@ -328,21 +322,21 @@ private:
 
     void createDescriptorSets()
     {
-        std::vector<VkDescriptorSetLayout> layouts(swapchain.size(), descriptorSetLayout);
+        std::vector<VkDescriptorSetLayout> layouts(swapchain->size(), descriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = descriptorPool;
-        allocInfo.descriptorSetCount = static_cast<uint32_t>(swapchain.size());
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(swapchain->size());
         allocInfo.pSetLayouts = layouts.data();
 
-        descriptorSets.resize(swapchain.size());
+        descriptorSets.resize(swapchain->size());
         if (vkAllocateDescriptorSets(device.device, &allocInfo, descriptorSets.data())
                 != VK_SUCCESS)
         {
             throw std::runtime_error("failed to allocate descriptor sets!");
         }
 
-        for (size_t i = 0; i < swapchain.size(); i++) {
+        for (size_t i = 0; i < swapchain->size(); i++) {
             VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = uniformBuffers[i];
             bufferInfo.offset = 0;
@@ -385,7 +379,7 @@ private:
      */
     void createCommandBuffers()
     {
-        commandBuffers.resize(swapchain.size());
+        commandBuffers.resize(swapchain->size());
 
         device.allocateCommandBuffers(&commandBuffers);
 
@@ -399,11 +393,11 @@ private:
                 throw std::runtime_error("failed to begin recording command buffer!");
             }
 
-            swapchain.beginRenderPass(commandBuffers[i], i);
+            swapchain->beginRenderPass(commandBuffers[i], i);
             pipeline->bind(commandBuffers[i], &descriptorSets[i]);
             model.bind(commandBuffers[i]);
             model.draw(commandBuffers[i]);
-            swapchain.endRenderPass(commandBuffers[i]);
+            swapchain->endRenderPass(commandBuffers[i]);
 
 
             if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
@@ -422,7 +416,7 @@ private:
         imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-        imagesInFlight.resize(swapchain.size(), VK_NULL_HANDLE);
+        imagesInFlight.resize(swapchain->size(), VK_NULL_HANDLE);
 
         VkSemaphoreCreateInfo semaphoreInfo{};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -450,7 +444,7 @@ private:
     MyWindow window;
     MyDevice device;
     MyModel model{device};
-    MySwapChain swapchain{device};
+    std::unique_ptr<MySwapChain> swapchain;
     std::unique_ptr<MyPipeline> pipeline;
     MyTexture texture{device};
     VkDescriptorSetLayout descriptorSetLayout;

@@ -15,15 +15,22 @@ static VkPresentModeKHR chooseSwapPresentMode(
 static VkSurfaceFormatKHR chooseSwapSurfaceFormat(
         const std::vector<VkSurfaceFormatKHR>& availableFormats);
 
-MySwapChain::MySwapChain(MyDevice& device)
-    :device(device)
-{ }
+MySwapChain::MySwapChain(MyDevice& device, 
+        const VkExtent2D& windowExtent,
+        VkSampleCountFlagBits msaaSamples)
+    :device(device),
+     msaaSamples(msaaSamples)
+{ 
+    createSwapChain(windowExtent);
+    createImageViews();
+    createRenderPass();
+    createColorResources();
+    createDepthResources();
+    createFramebuffers();
+}
 
 MySwapChain::~MySwapChain()
-{ }
-
-void MySwapChain::cleanup()
-{
+{ 
     vkDestroyImageView(device.device, colorImageView, nullptr);
     vkDestroyImage(device.device, colorImage, nullptr);
     vkFreeMemory(device.device, colorImageMemory, nullptr);
@@ -55,6 +62,7 @@ size_t MySwapChain::size()
 {
     return swapChainImages.size();
 }
+
 
 void MySwapChain::createSwapChain(const VkExtent2D& windowExtent)
 {

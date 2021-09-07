@@ -11,16 +11,11 @@ class MyDevice;
 class MySwapChain
 {
 public:
-    MySwapChain(MyDevice& device);
+    MySwapChain(MyDevice& device, 
+            const VkExtent2D& windowExtent,
+            VkSampleCountFlagBits msaaSamples);
     ~MySwapChain();
 
-    void createSwapChain(const VkExtent2D& windowExtent);
-    void cleanup();
-    void createImageViews();
-    void createFramebuffers();
-    void createDepthResources();
-    void createColorResources();
-    void createRenderPass();
     void beginRenderPass(VkCommandBuffer commandBuffer, size_t i);
     void endRenderPass(VkCommandBuffer commandBuffer);
     size_t size();
@@ -28,12 +23,18 @@ public:
     VkSwapchainKHR swapChain = VK_NULL_HANDLE;
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
-    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
     VkRenderPass renderPass = nullptr;
 
 private:
+    void createSwapChain(const VkExtent2D& windowExtent);
+    void createImageViews();
+    void createFramebuffers();
+    void createDepthResources();
+    void createColorResources();
+    void createRenderPass();
 
     MyDevice& device;
+    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
     std::vector<VkImage> swapChainImages;
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
