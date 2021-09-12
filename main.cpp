@@ -5,6 +5,7 @@
 #include "swapchain.hpp"
 #include "pipeline.hpp"
 #include "texture.hpp"
+#include "game_object.hpp"
 #include "utils.hpp"
 
 //libs
@@ -45,7 +46,6 @@ const std::string TEXTURE_PATH = "textures/companion_cube.png";
 
 
 struct UniformBufferObject {
-    //alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
 };
@@ -59,6 +59,7 @@ class HelloTriangleApplication
 {
 public:
     void run() {
+        createGameObjects();
         initVulkan();
         mainLoop();
         cleanup();
@@ -119,6 +120,7 @@ private:
         static auto startTime = std::chrono::high_resolution_clock::now();
         auto currentTime = std::chrono::high_resolution_clock::now();
         float timeDelta = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+        startTime = std::chrono::high_resolution_clock::now();
 
         recordCommandBuffer(imageIndex, timeDelta);
 
@@ -130,7 +132,6 @@ private:
         else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             throw std::runtime_error("failed to acquire swap chain image!");
         }
-
 
         result = swapchain->submitCommandBuffers(&commandBuffers[imageIndex], imageIndex);
         if (result != VK_SUCCESS) 
@@ -152,12 +153,46 @@ private:
         }
     }
 
-    void pushConstants(VkCommandBuffer commandBuffer, float timeDelta)
+    void recordCommandBuffer(int imageIndex, float timeDelta)
     {
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = 0;
+        beginInfo.pInheritanceInfo = nullptr;
 
-        PushConstantData data{};
-        data.transform = glm::rotate(glm::mat4(1.f), timeDelta * glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));
-        pipeline->pushConstants(commandBuffer, sizeof(data), &data);
+        if (vkBeginCommandBuffer(commandBuffers[imageIndex], &beginInfo) != VK_SUCCESS) {
+            throw std::runtime_error("failed to begin recording command buffer!");
+        }
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float) swapchain->swapChainExtent.width;
+        viewport.height = (float)swapchain->swapChainExtent.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = swapchain->swapChainExtent;
+
+        vkCmdSetViewport(commandBuffers[imageIndex], 0, 1, &viewport);
+        vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
+
+        swapchain->beginRenderPass(commandBuffers[imageIndex], imageIndex);
+        pipeline->bind(commandBuffers[imageIndex], &descriptorSets[imageIndex]);
+        for (auto& gameObject : gameObjects) {
+            gameObject.updateTick(timeDelta);
+            pipeline->pushConstants(commandBuffers[imageIndex], sizeof(gameObject.transform.matrix), &gameObject.transform.matrix);
+            gameObject.model->bind(commandBuffers[imageIndex]);
+            gameObject.model->draw(commandBuffers[imageIndex]);
+        }
+        swapchain->endRenderPass(commandBuffers[imageIndex]);
+
+
+        if (vkEndCommandBuffer(commandBuffers[imageIndex]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to record command buffer!");
+        }
     }
 
     void updateUniformBuffer(uint32_t currentImage)
@@ -176,6 +211,22 @@ private:
         vkMapMemory(device.device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
         memcpy(data, &ubo, sizeof(ubo));
         vkUnmapMemory(device.device, uniformBuffersMemory[currentImage]);
+    }
+
+    void createGameObjects()
+    {
+        auto model   = std::make_shared<MyModel>(device, MODEL_PATH.c_str());
+        auto texture = std::make_shared<MyTexture>(device, TEXTURE_PATH.c_str());
+
+        MyGameObject gameObject = MyGameObject::createGameObject(model, texture);
+        gameObjects.push_back(std::move(gameObject));
+
+        gameObject = MyGameObject::createGameObject(model, texture);
+        gameObject.transform.matrix = glm::translate(gameObject.transform.matrix,
+                glm::vec3(-1.f, -1.f, 2.f));
+        gameObject.transform.matrix = glm::scale(gameObject.transform.matrix,
+                glm::vec3(0.5f));
+        gameObjects.push_back(std::move(gameObject));
     }
 
     void reCreateSwapChain()
@@ -294,7 +345,7 @@ private:
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
 
-            VkDescriptorImageInfo imageInfo = texture.getImageInfo();
+            VkDescriptorImageInfo imageInfo = gameObjects[0].texture->getImageInfo();
 
             std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
@@ -332,61 +383,16 @@ private:
         device.allocateCommandBuffers(&commandBuffers);
     }
 
-    void recordCommandBuffer(int imageIndex, float timeDelta)
-    {
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = 0;
-        beginInfo.pInheritanceInfo = nullptr;
-
-        if (vkBeginCommandBuffer(commandBuffers[imageIndex], &beginInfo) != VK_SUCCESS) {
-            throw std::runtime_error("failed to begin recording command buffer!");
-        }
-
-        VkViewport viewport{};
-        viewport.x = 0.0f;
-        viewport.y = 0.0f;
-        viewport.width = (float) swapchain->swapChainExtent.width;
-        viewport.height = (float)swapchain->swapChainExtent.height;
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-
-        VkRect2D scissor{};
-        scissor.offset = {0, 0};
-        scissor.extent = swapchain->swapChainExtent;
-
-        vkCmdSetViewport(commandBuffers[imageIndex],
-                0, 1, &viewport);
-        vkCmdSetScissor(commandBuffers[imageIndex],
-                0, 1, &scissor);
-
-        swapchain->beginRenderPass(commandBuffers[imageIndex], imageIndex);
-        pipeline->bind(commandBuffers[imageIndex], &descriptorSets[imageIndex]);
-        model.bind(commandBuffers[imageIndex]);
-        pushConstants(commandBuffers[imageIndex], timeDelta);
-        model.draw(commandBuffers[imageIndex]);
-        swapchain->endRenderPass(commandBuffers[imageIndex]);
-
-
-        if (vkEndCommandBuffer(commandBuffers[imageIndex]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to record command buffer!");
-        }
-    }
-
-    
-
 private:
     MyWindow window;
     MyDevice device{window};
-    MyModel model{device, MODEL_PATH.c_str()};
+    std::vector<MyGameObject> gameObjects{};
     std::unique_ptr<MySwapChain> swapchain;
     std::unique_ptr<MyPipeline> pipeline;
-    MyTexture texture{device, TEXTURE_PATH.c_str()};
     VkDescriptorSetLayout descriptorSetLayout;
     VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
     std::vector<VkCommandBuffer> commandBuffers;
-    size_t currentFrame = 0;
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
     VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
