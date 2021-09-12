@@ -15,7 +15,6 @@ public:
     MyPipeline(MyDevice& device,
         VkDescriptorSetLayout* pDescriptorSetLayout,
         VkSampleCountFlagBits msaaSamples,
-        VkExtent2D swapChainExtent,
         VkRenderPass renderPass);
     ~MyPipeline();
 
@@ -31,7 +30,6 @@ private:
     void createGraphicsPipeline(
         VkDescriptorSetLayout* pDescriptorSetLayout,
         VkSampleCountFlagBits msaaSamples,
-        VkExtent2D swapChainExtent,
         VkRenderPass renderPass);
 
     VkPipelineLayout pipelineLayout;
