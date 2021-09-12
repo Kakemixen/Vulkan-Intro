@@ -5,6 +5,7 @@
 
 //std
 #include <vector>
+#include <memory>
 
 class MyDevice;
 
@@ -14,6 +15,10 @@ public:
     MySwapChain(MyDevice& device, 
             const VkExtent2D& windowExtent,
             VkSampleCountFlagBits msaaSamples);
+    MySwapChain(MyDevice& device, 
+            const VkExtent2D& windowExtent,
+            VkSampleCountFlagBits msaaSamples,
+            std::shared_ptr<MySwapChain> prevSwapChain);
     ~MySwapChain();
 
     MySwapChain(MySwapChain& other) = delete;
@@ -35,7 +40,10 @@ public:
 private:
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
-    void createSwapChain(const VkExtent2D& windowExtent);
+    void init(const VkExtent2D& windowExtent,
+        std::shared_ptr<MySwapChain> prevSwapChain);
+    void createSwapChain(const VkExtent2D& windowExtent,
+        std::shared_ptr<MySwapChain> prevSwapChain);
     void createImageViews();
     void createFramebuffers();
     void createDepthResources();

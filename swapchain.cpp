@@ -21,7 +21,24 @@ MySwapChain::MySwapChain(MyDevice& device,
     :device(device),
      msaaSamples(msaaSamples)
 { 
-    createSwapChain(windowExtent);
+    init(windowExtent, nullptr);
+}
+
+MySwapChain::MySwapChain(MyDevice& device, 
+        const VkExtent2D& windowExtent,
+        VkSampleCountFlagBits msaaSamples,
+        std::shared_ptr<MySwapChain> prevSwapChain)
+    :device(device),
+     msaaSamples(msaaSamples)
+{ 
+    init(windowExtent, prevSwapChain);
+}
+
+void MySwapChain::init(
+        const VkExtent2D& windowExtent,
+        std::shared_ptr<MySwapChain> prevSwapChain)
+{
+    createSwapChain(windowExtent, prevSwapChain);
     createImageViews();
     createRenderPass();
     createColorResources();
@@ -70,7 +87,8 @@ size_t MySwapChain::size()
 }
 
 
-void MySwapChain::createSwapChain(const VkExtent2D& windowExtent)
+void MySwapChain::createSwapChain(const VkExtent2D& windowExtent,
+        std::shared_ptr<MySwapChain> prevSwapChain)
 {
     SwapChainSupportDetails swapChainSupport = device.querySwapChainSupport(device.physicalDevice);
 
@@ -113,7 +131,7 @@ void MySwapChain::createSwapChain(const VkExtent2D& windowExtent)
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = presentMode;
     createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
+    createInfo.oldSwapchain = prevSwapChain ? prevSwapChain->swapChain : VK_NULL_HANDLE;
 
     if (vkCreateSwapchainKHR(device.device, &createInfo, nullptr, &swapChain)
             != VK_SUCCESS)

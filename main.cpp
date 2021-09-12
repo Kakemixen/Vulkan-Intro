@@ -169,11 +169,6 @@ private:
         vkUnmapMemory(device.device, uniformBuffersMemory[currentImage]);
     }
 
-
-
-    // swap setup functions
-
-
     void reCreateSwapChain()
     {
         VkExtent2D extent = window.getExtent();
@@ -186,10 +181,8 @@ private:
 
         cleanupSwapChain();
 
-        swapchain.reset();
         swapchain = std::make_unique<MySwapChain>(device,
-                window.getExtent(), msaaSamples);
-        pipeline.reset();
+                window.getExtent(), msaaSamples, std::move(swapchain));
         pipeline = std::make_unique<MyPipeline>(device,
                 &descriptorSetLayout, msaaSamples, 
                 swapchain->renderPass);
