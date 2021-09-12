@@ -14,10 +14,11 @@ MyPipeline::MyPipeline(MyDevice& device,
         VkDescriptorSetLayout* pDescriptorSetLayout,
         VkSampleCountFlagBits msaaSamples,
         VkRenderPass renderPass)
-    : device(device)
+    : device(device),
+      renderPass(renderPass)
 { 
     createGraphicsPipeline(pDescriptorSetLayout,
-            msaaSamples, renderPass);
+            msaaSamples);
 }
 
 MyPipeline::~MyPipeline() 
@@ -46,8 +47,7 @@ VkShaderModule MyPipeline::createShaderModule(const std::vector<char>& code)
 
 void MyPipeline::createGraphicsPipeline(
         VkDescriptorSetLayout* pDescriptorSetLayout,
-        VkSampleCountFlagBits msaaSamples,
-        VkRenderPass renderPass)
+        VkSampleCountFlagBits msaaSamples)
 {
     auto vertShaderCode = readFile("build/shaders/shader.vert.spv");
     auto fragShaderCode = readFile("build/shaders/shader.frag.spv");
@@ -155,12 +155,17 @@ void MyPipeline::createGraphicsPipeline(
     dynamicState.dynamicStateCount = 2;
     dynamicState.pDynamicStates = dynamicStates;
 
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = 128; //max guaranteed size
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = pDescriptorSetLayout;
-    pipelineLayoutInfo.pushConstantRangeCount = 0;
-    pipelineLayoutInfo.pPushConstantRanges = nullptr;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
     if (vkCreatePipelineLayout(device.device, &pipelineLayoutInfo, nullptr, &pipelineLayout)
             != VK_SUCCESS)
@@ -211,4 +216,12 @@ void MyPipeline::bind(VkCommandBuffer commandBuffer,
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
             0, 1, pDescriptorSet, 0, nullptr);
+}
+
+void MyPipeline::pushConstants(VkCommandBuffer commandBuffer, uint32_t size, const void* data)
+{
+    vkCmdPushConstants(commandBuffer, 
+            pipelineLayout, 
+            VK_SHADER_STAGE_VERTEX_BIT,
+            0, size, data);
 }

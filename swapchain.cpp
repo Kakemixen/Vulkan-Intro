@@ -455,3 +455,7 @@ VkResult MySwapChain::present(uint32_t imageIndex)
     return device.present(&presentInfo);
 }
 
+bool MySwapChain::renderPassCompatible(const VkRenderPass& renderPass)
+{
+    return false;
+}

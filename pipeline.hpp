@@ -23,14 +23,17 @@ public:
 
     void bind(VkCommandBuffer commandBuffer,
         VkDescriptorSet* pDescriptorSet);
+    void pushConstants(VkCommandBuffer commandBuffer, 
+            uint32_t size,
+            const void* data);
 
+    VkRenderPass renderPass;
 
 private:
     VkShaderModule createShaderModule(const std::vector<char>& code);
     void createGraphicsPipeline(
         VkDescriptorSetLayout* pDescriptorSetLayout,
-        VkSampleCountFlagBits msaaSamples,
-        VkRenderPass renderPass);
+        VkSampleCountFlagBits msaaSamples);
 
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;

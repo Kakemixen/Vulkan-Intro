@@ -45,11 +45,14 @@ const std::string TEXTURE_PATH = "textures/viking_room.png";
 
 
 struct UniformBufferObject {
-    alignas(16) glm::mat4 model;
+    //alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
 };
 
+struct PushConstantData {
+    alignas(16) glm::mat4 transform;
+};
 
 
 class HelloTriangleApplication
@@ -110,10 +113,14 @@ private:
 
     void drawFrame()
     {
-
         uint32_t imageIndex;
         VkResult result = swapchain->acquireNextImage(&imageIndex);
-        recordCommandBuffer(imageIndex);
+
+        static auto startTime = std::chrono::high_resolution_clock::now();
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float timeDelta = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+        recordCommandBuffer(imageIndex, timeDelta);
 
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             std::cout << "recreating swap chain out of date\n";
@@ -124,7 +131,6 @@ private:
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
-        updateUniformBuffer(imageIndex);
 
         result = swapchain->submitCommandBuffers(&commandBuffers[imageIndex], imageIndex);
         if (result != VK_SUCCESS) 
@@ -146,15 +152,18 @@ private:
         }
     }
 
+    void pushConstants(VkCommandBuffer commandBuffer, float timeDelta)
+    {
+
+        PushConstantData data{};
+        data.transform = glm::rotate(glm::mat4(1.f), timeDelta * glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));
+        pipeline->pushConstants(commandBuffer, sizeof(data), &data);
+    }
+
     void updateUniformBuffer(uint32_t currentImage)
     {
-        static auto startTime = std::chrono::high_resolution_clock::now();
-
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
         UniformBufferObject ubo{};
-        ubo.model = glm::rotate(glm::mat4(1.f), time * glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));
         ubo.view = glm::lookAt(glm::vec3(2.f, 2.f, 2.f), 
                 glm::vec3(0.f, 0.f, 0.f),
                 glm::vec3(0.f, 0.f, 1.f));
@@ -183,9 +192,10 @@ private:
 
         swapchain = std::make_unique<MySwapChain>(device,
                 window.getExtent(), msaaSamples, std::move(swapchain));
-        pipeline = std::make_unique<MyPipeline>(device,
-                &descriptorSetLayout, msaaSamples, 
-                swapchain->renderPass);
+        if (!swapchain->renderPassCompatible(pipeline->renderPass))
+            pipeline = std::make_unique<MyPipeline>(device,
+                    &descriptorSetLayout, msaaSamples, 
+                    swapchain->renderPass);
         createUniformBuffers();
         createDescriptorPool();
         createDescriptorSets();
@@ -224,10 +234,6 @@ private:
         }
     }
 
-
-
-
-
     void createUniformBuffers()
     {
         VkDeviceSize bufferSize = sizeof(UniformBufferObject);
@@ -241,6 +247,7 @@ private:
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                     uniformBuffers[i],
                     uniformBuffersMemory[i]);
+            updateUniformBuffer(i); //could be called every frame
         }
     }
 
@@ -325,7 +332,7 @@ private:
         device.allocateCommandBuffers(&commandBuffers);
     }
 
-    void recordCommandBuffer(int imageIndex)
+    void recordCommandBuffer(int imageIndex, float timeDelta)
     {
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -356,6 +363,7 @@ private:
         swapchain->beginRenderPass(commandBuffers[imageIndex], imageIndex);
         pipeline->bind(commandBuffers[imageIndex], &descriptorSets[imageIndex]);
         model.bind(commandBuffers[imageIndex]);
+        pushConstants(commandBuffers[imageIndex], timeDelta);
         model.draw(commandBuffers[imageIndex]);
         swapchain->endRenderPass(commandBuffers[imageIndex]);
 
