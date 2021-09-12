@@ -13,7 +13,6 @@ public:
     MyWindow(const MyWindow&) = delete;
     MyWindow operator=(const MyWindow&) = delete;
 
-    void initWindow();
     bool shouldClose();
     VkExtent2D getExtent();
     bool wasResized();

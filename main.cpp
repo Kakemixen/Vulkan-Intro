@@ -56,7 +56,6 @@ class HelloTriangleApplication
 {
 public:
     void run() {
-        window.initWindow();
         initVulkan();
         mainLoop();
         cleanup();
@@ -66,9 +65,6 @@ private:
 
     void initVulkan() 
     {
-        device.setupDevice(&window);
-        device.createCommandPool();
-        device.createTransferCommandPool();
         msaaSamples = device.getMaxUsableSampleCount();
         swapchain = std::make_unique<MySwapChain>(device,
                 window.getExtent(), msaaSamples);
@@ -228,7 +224,7 @@ private:
 
         std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
 
-        VkDescriptorSetLayoutCreateInfo layoutInfo;
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
         layoutInfo.pBindings = bindings.data();
@@ -373,7 +369,7 @@ private:
 
 private:
     MyWindow window;
-    MyDevice device;
+    MyDevice device{window};
     MyModel model{device};
     std::unique_ptr<MySwapChain> swapchain;
     std::unique_ptr<MyPipeline> pipeline;

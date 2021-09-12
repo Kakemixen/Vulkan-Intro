@@ -11,13 +11,7 @@
 static const std::uint32_t WIDTH = 800;
 static const std::uint32_t HEIGHT = 600;
 
-MyWindow::MyWindow() {}
-MyWindow::~MyWindow()
-{
-    glfwDestroyWindow(window);
-}
-
-void MyWindow::initWindow()
+MyWindow::MyWindow() 
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -26,6 +20,11 @@ void MyWindow::initWindow()
     window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, MyWindow::framebufferResizeCallback);
+}
+
+MyWindow::~MyWindow()
+{
+    glfwDestroyWindow(window);
 }
 
 bool MyWindow::shouldClose()

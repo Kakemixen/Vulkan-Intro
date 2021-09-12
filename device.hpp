@@ -45,10 +45,10 @@ enum class CommandPool
 class MyDevice 
 {
 public:
-    MyDevice();
+    MyDevice(MyWindow& window);
     ~MyDevice();
 
-    void setupDevice(MyWindow* window);
+    void setupDevice();
     VkSampleCountFlagBits getMaxUsableSampleCount();
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
@@ -116,7 +116,7 @@ private:
         VkImageTiling tiling,
         VkFormatFeatureFlags features);
 
-    MyWindow* window;
+    MyWindow& window;
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
     std::map<CommandPool, VkCommandPool> poolMap;

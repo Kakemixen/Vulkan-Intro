@@ -24,8 +24,13 @@ const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
 
-MyDevice::MyDevice()
-{ }
+MyDevice::MyDevice(MyWindow& window)
+    : window(window)
+{
+    setupDevice();
+    createCommandPool();
+    createTransferCommandPool();
+}
 
 MyDevice::~MyDevice()
 { 
@@ -39,12 +44,8 @@ MyDevice::~MyDevice()
     vkDestroyInstance(instance, nullptr);
 }
 
-void MyDevice::setupDevice(MyWindow* window)
+void MyDevice::setupDevice()
 {
-    if (!window) {
-        throw std::runtime_error("Need glfw3 window for device setup!");
-    }
-    this->window = window;
     createInstance();
     createSurface();
     setupDebugmessenger();
@@ -413,7 +414,7 @@ void MyDevice::setupDebugmessenger() {
 
 void MyDevice::createSurface()
 {
-    if (glfwCreateWindowSurface(instance, window->window, nullptr, &surface)
+    if (glfwCreateWindowSurface(instance, window.window, nullptr, &surface)
             != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create window surface!");
