@@ -8,9 +8,13 @@
 //std
 #include <stdexcept>
 
-MyTexture::MyTexture(MyDevice& device)
+MyTexture::MyTexture(MyDevice& device, const char* texturePath)
     :device(device)
-{}
+{
+    createTextureImage(texturePath);
+    createTextureImageView();
+    createTextureSampler();
+}
 
 MyTexture::~MyTexture()
 {

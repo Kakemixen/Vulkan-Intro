@@ -7,15 +7,15 @@ class MyDevice;
 class MyTexture
 {
 public:
-    MyTexture(MyDevice& device);
+    MyTexture(MyDevice& device, const char* texturePath);
     ~MyTexture();
 
-    void createTextureImage(const char* texturePath);
-    void createTextureImageView();
-    void createTextureSampler();
     VkDescriptorImageInfo getImageInfo();
 
 private:
+    void createTextureImage(const char* texturePath);
+    void createTextureImageView();
+    void createTextureSampler();
     void generateMipmaps(VkImage image,
             VkFormat format,
             int32_t texWidth,
