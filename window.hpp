@@ -10,6 +10,7 @@ class MyWindow
 public:
     MyWindow();
     ~MyWindow();
+
     MyWindow(const MyWindow&) = delete;
     MyWindow operator=(const MyWindow&) = delete;
 

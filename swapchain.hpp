@@ -16,6 +16,9 @@ public:
             VkSampleCountFlagBits msaaSamples);
     ~MySwapChain();
 
+    MySwapChain(MySwapChain& other) = delete;
+    MySwapChain operator=(MySwapChain& other) = delete;
+
     void beginRenderPass(VkCommandBuffer commandBuffer, size_t i);
     void endRenderPass(VkCommandBuffer commandBuffer);
     VkResult acquireNextImage(uint32_t* imageIndex);

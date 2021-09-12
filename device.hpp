@@ -48,6 +48,9 @@ public:
     MyDevice(MyWindow& window);
     ~MyDevice();
 
+    MyDevice(MyDevice& other) = delete;
+    MyDevice operator=(MyDevice& other) = delete;
+
     void setupDevice();
     VkSampleCountFlagBits getMaxUsableSampleCount();
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);

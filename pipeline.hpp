@@ -19,6 +19,9 @@ public:
         VkRenderPass renderPass);
     ~MyPipeline();
 
+    MyPipeline(MyPipeline& other) = delete;
+    MyPipeline operator=(MyPipeline& other) = delete;
+
     void bind(VkCommandBuffer commandBuffer,
         VkDescriptorSet* pDescriptorSet);
 

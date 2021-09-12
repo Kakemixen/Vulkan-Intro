@@ -10,6 +10,9 @@ public:
     MyTexture(MyDevice& device, const char* texturePath);
     ~MyTexture();
 
+    MyTexture(MyTexture& other) = delete;
+    MyTexture operator=(MyTexture& other) = delete;
+
     VkDescriptorImageInfo getImageInfo();
 
 private:

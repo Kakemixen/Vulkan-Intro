@@ -15,6 +15,9 @@ public:
     MyModel(MyDevice& device, const char* modelPath);
     ~MyModel();
 
+    MyModel(MyModel& other) = delete;
+    MyModel operator=(MyModel& other) = delete;
+
     void loadModel(const char* modelPath);
     void createVertexBuffer();
     void createIndexBuffer();
