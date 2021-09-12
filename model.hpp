@@ -12,10 +12,10 @@ class MyDevice;
 
 class MyModel {
 public:
-    MyModel(MyDevice& device);
+    MyModel(MyDevice& device, const char* modelPath);
     ~MyModel();
 
-    void loadModel(const char* model_path);
+    void loadModel(const char* modelPath);
     void createVertexBuffer();
     void createIndexBuffer();
     void bind(VkCommandBuffer& commandBuffer);

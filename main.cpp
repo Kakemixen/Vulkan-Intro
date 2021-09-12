@@ -72,9 +72,6 @@ private:
         pipeline = std::make_unique<MyPipeline>(device,
                 &descriptorSetLayout, msaaSamples, 
                 swapchain->swapChainExtent, swapchain->renderPass);
-        model.loadModel(MODEL_PATH.c_str());
-        model.createVertexBuffer();
-        model.createIndexBuffer();
         createUniformBuffers();
         createDescriptorPool();
         createDescriptorSets();
@@ -367,7 +364,7 @@ private:
 private:
     MyWindow window;
     MyDevice device{window};
-    MyModel model{device};
+    MyModel model{device, MODEL_PATH.c_str()};
     std::unique_ptr<MySwapChain> swapchain;
     std::unique_ptr<MyPipeline> pipeline;
     MyTexture texture{device, TEXTURE_PATH.c_str()};

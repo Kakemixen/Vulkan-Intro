@@ -11,9 +11,13 @@
 #include <unordered_map>
 #include <iostream>
 
-MyModel::MyModel(MyDevice& device)
+MyModel::MyModel(MyDevice& device, const char* modelPath)
     :device(device)
-{}
+{
+    loadModel(modelPath);
+    createVertexBuffer();
+    createIndexBuffer();
+}
 
 MyModel::~MyModel()
 {
@@ -36,14 +40,14 @@ void MyModel::draw(VkCommandBuffer& commandBuffer)
     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 }
 
-void MyModel::loadModel(const char* model_path)
+void MyModel::loadModel(const char* modelPath)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, model_path)) {
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modelPath)) {
         throw std::runtime_error(warn + err);
     }
 
