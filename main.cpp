@@ -6,6 +6,7 @@
 #include "pipeline.hpp"
 #include "texture.hpp"
 #include "game_object.hpp"
+#include "renderer.hpp"
 #include "utils.hpp"
 
 //libs
@@ -69,41 +70,53 @@ private:
 
     void initVulkan() 
     {
-        msaaSamples = device.getMaxUsableSampleCount();
-        swapchain = std::make_unique<MySwapChain>(device,
-                window.getExtent(), msaaSamples);
         createDescriptorSetLayout();
         pipeline = std::make_unique<MyPipeline>(device,
-                &descriptorSetLayout, msaaSamples, 
-                swapchain->renderPass);
+                &descriptorSetLayout, device.getMaxUsableSampleCount(), 
+                renderer.getSwapChainRenderPass());
         createUniformBuffers();
         createDescriptorPool();
         createDescriptorSets();
-        createCommandBuffers();
     }
 
     void mainLoop() 
     {
         while (!window.shouldClose()) {
             glfwPollEvents();
-            drawFrame();
+            static auto startTime = std::chrono::high_resolution_clock::now();
+            auto currentTime = std::chrono::high_resolution_clock::now();
+            float timeDelta = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+            startTime = std::chrono::high_resolution_clock::now();
+
+            VkCommandBuffer commandBuffer = renderer.beginFrame();
+            renderer.beginRenderPass(commandBuffer);
+
+            pipeline->bind(commandBuffer, &descriptorSets[renderer.getImageIndex()]);
+            for (auto& gameObject : gameObjects) {
+                gameObject.updateTick(timeDelta);
+                pipeline->pushConstants(commandBuffer, sizeof(gameObject.transform.matrix), &gameObject.transform.matrix);
+                gameObject.model->bind(commandBuffer);
+                gameObject.model->draw(commandBuffer);
+            }
+
+            renderer.endRenderPass(commandBuffer);
+            renderer.endFrame(commandBuffer);
         }
         vkDeviceWaitIdle(device.device);
     }
 
     void cleanup() 
     {
-        cleanupSwapChain();
+        cleanupBuffers();
 
         vkDestroyDescriptorSetLayout(device.device, descriptorSetLayout, nullptr);
         glfwTerminate();
     }
 
-    void cleanupSwapChain()
+    void cleanupBuffers()
     {
-        device.freeCommandBuffers(&commandBuffers);
 
-        for (size_t i = 0; i < swapchain->size(); i++) {
+        for (size_t i = 0; i < renderer.getSwapChainSize(); i++) {
             vkDestroyBuffer(device.device, uniformBuffers[i], nullptr);
             vkFreeMemory(device.device, uniformBuffersMemory[i], nullptr);
         }
@@ -112,88 +125,6 @@ private:
     }
 
 
-    void drawFrame()
-    {
-        uint32_t imageIndex;
-        VkResult result = swapchain->acquireNextImage(&imageIndex);
-
-        static auto startTime = std::chrono::high_resolution_clock::now();
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float timeDelta = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-        startTime = std::chrono::high_resolution_clock::now();
-
-        recordCommandBuffer(imageIndex, timeDelta);
-
-        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-            std::cout << "recreating swap chain out of date\n";
-            reCreateSwapChain();
-            return;
-        }
-        else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-            throw std::runtime_error("failed to acquire swap chain image!");
-        }
-
-        result = swapchain->submitCommandBuffers(&commandBuffers[imageIndex], imageIndex);
-        if (result != VK_SUCCESS) 
-        {
-            throw std::runtime_error("failed to submit draw command buffer!");
-        }
-
-        result = swapchain->present(imageIndex);
-        if (result == VK_ERROR_OUT_OF_DATE_KHR 
-                || result == VK_SUBOPTIMAL_KHR
-                || window.wasResized()) 
-        {
-            std::cout << "recreating swap chain out of date or suboptimal\n";
-            reCreateSwapChain();
-            window.resetResizedFlag();
-        }
-        else if (result != VK_SUCCESS) {
-            throw std::runtime_error("failed to acquire swap chain image!");
-        }
-    }
-
-    void recordCommandBuffer(int imageIndex, float timeDelta)
-    {
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = 0;
-        beginInfo.pInheritanceInfo = nullptr;
-
-        if (vkBeginCommandBuffer(commandBuffers[imageIndex], &beginInfo) != VK_SUCCESS) {
-            throw std::runtime_error("failed to begin recording command buffer!");
-        }
-
-        VkViewport viewport{};
-        viewport.x = 0.0f;
-        viewport.y = 0.0f;
-        viewport.width = (float) swapchain->swapChainExtent.width;
-        viewport.height = (float)swapchain->swapChainExtent.height;
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-
-        VkRect2D scissor{};
-        scissor.offset = {0, 0};
-        scissor.extent = swapchain->swapChainExtent;
-
-        vkCmdSetViewport(commandBuffers[imageIndex], 0, 1, &viewport);
-        vkCmdSetScissor(commandBuffers[imageIndex], 0, 1, &scissor);
-
-        swapchain->beginRenderPass(commandBuffers[imageIndex], imageIndex);
-        pipeline->bind(commandBuffers[imageIndex], &descriptorSets[imageIndex]);
-        for (auto& gameObject : gameObjects) {
-            gameObject.updateTick(timeDelta);
-            pipeline->pushConstants(commandBuffers[imageIndex], sizeof(gameObject.transform.matrix), &gameObject.transform.matrix);
-            gameObject.model->bind(commandBuffers[imageIndex]);
-            gameObject.model->draw(commandBuffers[imageIndex]);
-        }
-        swapchain->endRenderPass(commandBuffers[imageIndex]);
-
-
-        if (vkEndCommandBuffer(commandBuffers[imageIndex]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to record command buffer!");
-        }
-    }
 
     void updateUniformBuffer(uint32_t currentImage)
     {
@@ -203,7 +134,7 @@ private:
                 glm::vec3(0.f, 0.f, 0.f),
                 glm::vec3(0.f, 0.f, 1.f));
         ubo.proj = glm::perspective(glm::radians(45.f), 
-                swapchain->swapChainExtent.width / (float) swapchain->swapChainExtent.height, 
+                renderer.getAspectRatio(),
                 0.1f, 10.f);
         ubo.proj[1][1] *= -1;
 
@@ -228,32 +159,6 @@ private:
                 glm::vec3(0.5f));
         gameObjects.push_back(std::move(gameObject));
     }
-
-    void reCreateSwapChain()
-    {
-        VkExtent2D extent = window.getExtent();
-        while (extent.width == 0 || extent.height == 0) {
-            extent = window.getExtent();
-            glfwWaitEvents();
-        }
-
-        vkDeviceWaitIdle(device.device);
-
-        cleanupSwapChain();
-
-        swapchain = std::make_unique<MySwapChain>(device,
-                window.getExtent(), msaaSamples, std::move(swapchain));
-        if (!swapchain->renderPassCompatible(pipeline->renderPass))
-            pipeline = std::make_unique<MyPipeline>(device,
-                    &descriptorSetLayout, msaaSamples, 
-                    swapchain->renderPass);
-        createUniformBuffers();
-        createDescriptorPool();
-        createDescriptorSets();
-        createCommandBuffers();
-    }
-
-
 
     void createDescriptorSetLayout()
     {
@@ -289,10 +194,10 @@ private:
     {
         VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-        uniformBuffers.resize(swapchain->size());
-        uniformBuffersMemory.resize(swapchain->size());
+        uniformBuffers.resize(renderer.getSwapChainSize());
+        uniformBuffersMemory.resize(renderer.getSwapChainSize());
 
-        for (size_t i = 0; i < swapchain->size(); i++) {
+        for (size_t i = 0; i < renderer.getSwapChainSize(); i++) {
             device.createBuffer(bufferSize,
                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -306,15 +211,15 @@ private:
     {
         std::array<VkDescriptorPoolSize, 2> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapchain->size());
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(renderer.getSwapChainSize());
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapchain->size());
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(renderer.getSwapChainSize());
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = static_cast<uint32_t>(swapchain->size());
+        poolInfo.maxSets = static_cast<uint32_t>(renderer.getSwapChainSize());
 
         if (vkCreateDescriptorPool(device.device, &poolInfo, nullptr, &descriptorPool)
                 != VK_SUCCESS)
@@ -325,26 +230,27 @@ private:
 
     void createDescriptorSets()
     {
-        std::vector<VkDescriptorSetLayout> layouts(swapchain->size(), descriptorSetLayout);
+        std::vector<VkDescriptorSetLayout> layouts(renderer.getSwapChainSize(), descriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = descriptorPool;
-        allocInfo.descriptorSetCount = static_cast<uint32_t>(swapchain->size());
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(renderer.getSwapChainSize());
         allocInfo.pSetLayouts = layouts.data();
 
-        descriptorSets.resize(swapchain->size());
+        descriptorSets.resize(renderer.getSwapChainSize());
         if (vkAllocateDescriptorSets(device.device, &allocInfo, descriptorSets.data())
                 != VK_SUCCESS)
         {
             throw std::runtime_error("failed to allocate descriptor sets!");
         }
 
-        for (size_t i = 0; i < swapchain->size(); i++) {
+        for (size_t i = 0; i < renderer.getSwapChainSize(); i++) {
             VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = uniformBuffers[i];
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
 
+            //TODO no
             VkDescriptorImageInfo imageInfo = gameObjects[0].texture->getImageInfo();
 
             std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
@@ -377,25 +283,18 @@ private:
     }
 
 
-    void createCommandBuffers()
-    {
-        commandBuffers.resize(swapchain->size());
-        device.allocateCommandBuffers(&commandBuffers);
-    }
 
 private:
     MyWindow window;
     MyDevice device{window};
+    MyRenderer renderer{window, device, device.getMaxUsableSampleCount()};
     std::vector<MyGameObject> gameObjects{};
-    std::unique_ptr<MySwapChain> swapchain;
     std::unique_ptr<MyPipeline> pipeline;
     VkDescriptorSetLayout descriptorSetLayout;
     VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
-    std::vector<VkCommandBuffer> commandBuffers;
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
-    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
 public:
 };

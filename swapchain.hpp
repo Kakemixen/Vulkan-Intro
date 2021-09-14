@@ -24,8 +24,8 @@ public:
     MySwapChain(MySwapChain& other) = delete;
     MySwapChain operator=(MySwapChain& other) = delete;
 
-    void beginRenderPass(VkCommandBuffer commandBuffer, size_t i);
-    void endRenderPass(VkCommandBuffer commandBuffer);
+    VkFramebuffer getFramebuffer(size_t i);
+    VkRenderPass getRenderPass();
     VkResult acquireNextImage(uint32_t* imageIndex);
     VkResult submitCommandBuffers(VkCommandBuffer* commandBuffer, 
             size_t imageIndex);
@@ -36,7 +36,6 @@ public:
     VkSwapchainKHR swapChain = VK_NULL_HANDLE;
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
-    VkRenderPass renderPass = nullptr;
 
 private:
     const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -54,6 +53,7 @@ private:
 
     MyDevice& device;
     VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+    VkRenderPass renderPass = nullptr;
     std::vector<VkImage> swapChainImages;
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;

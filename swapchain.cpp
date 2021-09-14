@@ -378,30 +378,6 @@ void MySwapChain::createRenderPass()
     }
 }
 
-void MySwapChain::beginRenderPass(VkCommandBuffer commandBuffer, size_t i)
-{
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = renderPass;
-    renderPassInfo.framebuffer = swapChainFramebuffers[i];
-    renderPassInfo.renderArea.offset = {0,0};
-    renderPassInfo.renderArea.extent = swapChainExtent;
-
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0] = {0.0f, 0.0f, 0.0f, 1.0f};
-    clearValues[1] = {1.0f, 0};
-
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
-
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-}
-
-void MySwapChain::endRenderPass(VkCommandBuffer commandBuffer)
-{
-    vkCmdEndRenderPass(commandBuffer);
-}
-
 VkResult MySwapChain::acquireNextImage(uint32_t* imageIndex)
 {
     vkWaitForFences(device.device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -459,3 +435,14 @@ bool MySwapChain::renderPassCompatible(const VkRenderPass& renderPass)
 {
     return false;
 }
+
+VkFramebuffer MySwapChain::getFramebuffer(size_t i)
+{
+    return swapChainFramebuffers[i];
+}
+
+VkRenderPass MySwapChain::getRenderPass()
+{
+    return renderPass;
+}
+
