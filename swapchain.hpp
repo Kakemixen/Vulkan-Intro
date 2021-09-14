@@ -12,6 +12,8 @@ class MyDevice;
 class MySwapChain
 {
 public:
+    static const int MAX_FRAMES_IN_FLIGHT = 2;
+
     MySwapChain(MyDevice& device, 
             const VkExtent2D& windowExtent,
             VkSampleCountFlagBits msaaSamples);
@@ -38,8 +40,6 @@ public:
     VkExtent2D swapChainExtent;
 
 private:
-    const int MAX_FRAMES_IN_FLIGHT = 2;
-
     void init(const VkExtent2D& windowExtent,
         std::shared_ptr<MySwapChain> prevSwapChain);
     void createSwapChain(const VkExtent2D& windowExtent,

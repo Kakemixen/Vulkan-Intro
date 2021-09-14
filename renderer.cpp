@@ -23,7 +23,7 @@ MyRenderer::MyRenderer(MyWindow& window,
 
 void MyRenderer::createCommandBuffers()
 {
-    commandBuffers.resize(swapchain->size());
+    commandBuffers.resize(getSize());
     device.allocateCommandBuffers(&commandBuffers);
 }
 
@@ -36,7 +36,7 @@ MyRenderer::~MyRenderer()
 VkCommandBuffer MyRenderer::beginFrame()
 {
     assert(!startedFrame && "only one frame at a time pls!");
-    VkResult result = swapchain->acquireNextImage(&imageIndex);
+    VkResult result = swapchain->acquireNextImage(&currentImageIdx);
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         std::cout << "recreating swap chain out of date\n";
         reCreateSwapChain();
@@ -50,29 +50,29 @@ VkCommandBuffer MyRenderer::beginFrame()
     beginInfo.flags = 0;
     beginInfo.pInheritanceInfo = nullptr;
 
-    if (vkBeginCommandBuffer(commandBuffers[imageIndex], &beginInfo) != VK_SUCCESS) {
+    if (vkBeginCommandBuffer(commandBuffers[currentImageIdx], &beginInfo) != VK_SUCCESS) {
         throw std::runtime_error("failed to begin recording command buffer!");
     }
     startedFrame = true;
-    return commandBuffers[imageIndex];
+    return commandBuffers[currentImageIdx];
 }
 
 void MyRenderer::endFrame(VkCommandBuffer commandBuffer)
 {
     assert(startedFrame && "Cannot end unstarted frame!");
-    assert(commandBuffer == commandBuffers[imageIndex] && "can't work on old commandBuffer");
+    assert(commandBuffer == commandBuffers[currentImageIdx] && "can't work on old commandBuffer");
 
-    if (vkEndCommandBuffer(commandBuffers[imageIndex]) != VK_SUCCESS) {
+    if (vkEndCommandBuffer(commandBuffers[currentImageIdx]) != VK_SUCCESS) {
         throw std::runtime_error("failed to record command buffer!");
     }
 
-    VkResult result = swapchain->submitCommandBuffers(&commandBuffer, imageIndex);
+    VkResult result = swapchain->submitCommandBuffers(&commandBuffer, currentImageIdx);
     if (result != VK_SUCCESS) 
     {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
 
-    result = swapchain->present(imageIndex);
+    result = swapchain->present(currentImageIdx);
     if (result == VK_ERROR_OUT_OF_DATE_KHR 
             || result == VK_SUBOPTIMAL_KHR
             || window.wasResized()) 
@@ -90,7 +90,7 @@ void MyRenderer::endFrame(VkCommandBuffer commandBuffer)
 void MyRenderer::beginRenderPass(VkCommandBuffer commandBuffer)
 {
     assert(startedFrame && "Cannot end unstarted frame!");
-    assert(commandBuffer == commandBuffers[imageIndex] && "can't work on old commandBuffer");
+    assert(commandBuffer == commandBuffers[currentImageIdx] && "can't work on old commandBuffer");
 
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -110,7 +110,7 @@ void MyRenderer::beginRenderPass(VkCommandBuffer commandBuffer)
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = swapchain->getRenderPass();
-    renderPassInfo.framebuffer = swapchain->getFramebuffer(imageIndex);
+    renderPassInfo.framebuffer = swapchain->getFramebuffer(currentImageIdx);
     renderPassInfo.renderArea.offset = {0,0};
     renderPassInfo.renderArea.extent = swapchain->swapChainExtent;
 
@@ -127,7 +127,7 @@ void MyRenderer::beginRenderPass(VkCommandBuffer commandBuffer)
 void MyRenderer::endRenderPass(VkCommandBuffer commandBuffer)
 {
     assert(startedFrame && "Cannot end unstarted frame!");
-    assert(commandBuffer == commandBuffers[imageIndex] && "can't work on old commandBuffer");
+    assert(commandBuffer == commandBuffers[currentImageIdx] && "can't work on old commandBuffer");
 
     vkCmdEndRenderPass(commandBuffer);
 }
@@ -157,9 +157,9 @@ void MyRenderer::reCreateSwapChain()
     //createCommandBuffers();
 }
 
-uint32_t MyRenderer::getImageIndex()
+uint32_t MyRenderer::getIndex()
 {
-    return imageIndex;    
+    return currentImageIdx;    
 }
 
 VkRenderPass MyRenderer::getSwapChainRenderPass()
@@ -167,10 +167,11 @@ VkRenderPass MyRenderer::getSwapChainRenderPass()
     return swapchain->getRenderPass();
 }
 
-size_t MyRenderer::getSwapChainSize()
+size_t MyRenderer::getSize()
 {
     return swapchain->size();
 }
+
 float MyRenderer::getAspectRatio()
 {
     return swapchain->swapChainExtent.width / (float) swapchain->swapChainExtent.height;

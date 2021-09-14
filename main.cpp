@@ -91,7 +91,7 @@ private:
             VkCommandBuffer commandBuffer = renderer.beginFrame();
             renderer.beginRenderPass(commandBuffer);
 
-            pipeline->bind(commandBuffer, &descriptorSets[renderer.getImageIndex()]);
+            pipeline->bind(commandBuffer, &descriptorSets[renderer.getIndex()]);
             for (auto& gameObject : gameObjects) {
                 gameObject.updateTick(timeDelta);
                 pipeline->pushConstants(commandBuffer, sizeof(gameObject.transform.matrix), &gameObject.transform.matrix);
@@ -116,7 +116,7 @@ private:
     void cleanupBuffers()
     {
 
-        for (size_t i = 0; i < renderer.getSwapChainSize(); i++) {
+        for (size_t i = 0; i < renderer.getSize(); i++) {
             vkDestroyBuffer(device.device, uniformBuffers[i], nullptr);
             vkFreeMemory(device.device, uniformBuffersMemory[i], nullptr);
         }
@@ -194,10 +194,10 @@ private:
     {
         VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-        uniformBuffers.resize(renderer.getSwapChainSize());
-        uniformBuffersMemory.resize(renderer.getSwapChainSize());
+        uniformBuffers.resize(renderer.getSize());
+        uniformBuffersMemory.resize(renderer.getSize());
 
-        for (size_t i = 0; i < renderer.getSwapChainSize(); i++) {
+        for (size_t i = 0; i < renderer.getSize(); i++) {
             device.createBuffer(bufferSize,
                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -211,15 +211,15 @@ private:
     {
         std::array<VkDescriptorPoolSize, 2> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = static_cast<uint32_t>(renderer.getSwapChainSize());
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(renderer.getSize());
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<uint32_t>(renderer.getSwapChainSize());
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(renderer.getSize());
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = static_cast<uint32_t>(renderer.getSwapChainSize());
+        poolInfo.maxSets = static_cast<uint32_t>(renderer.getSize());
 
         if (vkCreateDescriptorPool(device.device, &poolInfo, nullptr, &descriptorPool)
                 != VK_SUCCESS)
@@ -230,21 +230,21 @@ private:
 
     void createDescriptorSets()
     {
-        std::vector<VkDescriptorSetLayout> layouts(renderer.getSwapChainSize(), descriptorSetLayout);
+        std::vector<VkDescriptorSetLayout> layouts(renderer.getSize(), descriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = descriptorPool;
-        allocInfo.descriptorSetCount = static_cast<uint32_t>(renderer.getSwapChainSize());
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(renderer.getSize());
         allocInfo.pSetLayouts = layouts.data();
 
-        descriptorSets.resize(renderer.getSwapChainSize());
+        descriptorSets.resize(renderer.getSize());
         if (vkAllocateDescriptorSets(device.device, &allocInfo, descriptorSets.data())
                 != VK_SUCCESS)
         {
             throw std::runtime_error("failed to allocate descriptor sets!");
         }
 
-        for (size_t i = 0; i < renderer.getSwapChainSize(); i++) {
+        for (size_t i = 0; i < renderer.getSize(); i++) {
             VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = uniformBuffers[i];
             bufferInfo.offset = 0;

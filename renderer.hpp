@@ -26,9 +26,9 @@ public:
     void beginRenderPass(VkCommandBuffer commandBuffer);
     void endRenderPass(VkCommandBuffer commandBuffer);
 
-    uint32_t getImageIndex();
+    uint32_t getIndex();
     VkRenderPass getSwapChainRenderPass();
-    size_t getSwapChainSize();
+    size_t getSize();
     float getAspectRatio();
 
 private:
@@ -41,6 +41,6 @@ private:
 
     MyWindow& window;
     MyDevice& device;
-    uint32_t imageIndex = 0;
+    uint32_t currentImageIdx = 0;
     bool startedFrame = false;
 };
