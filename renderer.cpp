@@ -50,19 +50,19 @@ VkCommandBuffer MyRenderer::beginFrame()
     beginInfo.flags = 0;
     beginInfo.pInheritanceInfo = nullptr;
 
-    if (vkBeginCommandBuffer(commandBuffers[currentImageIdx], &beginInfo) != VK_SUCCESS) {
+    if (vkBeginCommandBuffer(commandBuffers[currentCommandBufferIdx], &beginInfo) != VK_SUCCESS) {
         throw std::runtime_error("failed to begin recording command buffer!");
     }
     startedFrame = true;
-    return commandBuffers[currentImageIdx];
+    return commandBuffers[currentCommandBufferIdx];
 }
 
 void MyRenderer::endFrame(VkCommandBuffer commandBuffer)
 {
     assert(startedFrame && "Cannot end unstarted frame!");
-    assert(commandBuffer == commandBuffers[currentImageIdx] && "can't work on old commandBuffer");
+    assert(commandBuffer == commandBuffers[currentCommandBufferIdx] && "can't work on old commandBuffer");
 
-    if (vkEndCommandBuffer(commandBuffers[currentImageIdx]) != VK_SUCCESS) {
+    if (vkEndCommandBuffer(commandBuffers[currentCommandBufferIdx]) != VK_SUCCESS) {
         throw std::runtime_error("failed to record command buffer!");
     }
 
@@ -85,12 +85,13 @@ void MyRenderer::endFrame(VkCommandBuffer commandBuffer)
         throw std::runtime_error("failed to acquire swap chain image!");
     }
     startedFrame = false;
+    currentCommandBufferIdx = (currentCommandBufferIdx + 1) % getSize();
 }
 
 void MyRenderer::beginRenderPass(VkCommandBuffer commandBuffer)
 {
     assert(startedFrame && "Cannot end unstarted frame!");
-    assert(commandBuffer == commandBuffers[currentImageIdx] && "can't work on old commandBuffer");
+    assert(commandBuffer == commandBuffers[currentCommandBufferIdx] && "can't work on old commandBuffer");
 
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -127,7 +128,7 @@ void MyRenderer::beginRenderPass(VkCommandBuffer commandBuffer)
 void MyRenderer::endRenderPass(VkCommandBuffer commandBuffer)
 {
     assert(startedFrame && "Cannot end unstarted frame!");
-    assert(commandBuffer == commandBuffers[currentImageIdx] && "can't work on old commandBuffer");
+    assert(commandBuffer == commandBuffers[currentCommandBufferIdx] && "can't work on old commandBuffer");
 
     vkCmdEndRenderPass(commandBuffer);
 }
@@ -159,7 +160,7 @@ void MyRenderer::reCreateSwapChain()
 
 uint32_t MyRenderer::getIndex()
 {
-    return currentImageIdx;    
+    return currentCommandBufferIdx;    
 }
 
 VkRenderPass MyRenderer::getSwapChainRenderPass()

@@ -42,5 +42,6 @@ private:
     MyWindow& window;
     MyDevice& device;
     uint32_t currentImageIdx = 0;
+    uint32_t currentCommandBufferIdx = 0;
     bool startedFrame = false;
 };
