@@ -271,6 +271,7 @@ void MySwapChain::createDepthResources()
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
             1);
+    swapChainDepthFormat = depthFormat;
 }
 
 void MySwapChain::createColorResources() 
@@ -431,9 +432,10 @@ VkResult MySwapChain::present(uint32_t imageIndex)
     return device.present(&presentInfo);
 }
 
-bool MySwapChain::renderPassCompatible(const VkRenderPass& renderPass)
+bool MySwapChain::renderPassCompatible(const std::shared_ptr<MySwapChain> oldSwapchain)
 {
-    return false;
+    return oldSwapchain->swapChainImageFormat == swapChainImageFormat
+        && oldSwapchain->swapChainDepthFormat == swapChainDepthFormat;
 }
 
 VkFramebuffer MySwapChain::getFramebuffer(size_t i)

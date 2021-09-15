@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <vector>
+#include <functional>
 
 class MySwapChain;
 class MyWindow;
@@ -13,9 +14,12 @@ class MyDevice;
 class MyRenderer
 {
 public:
-    MyRenderer( MyWindow& window,
+    MyRenderer(MyWindow& window,
             MyDevice& device,
-            VkSampleCountFlagBits msaaSamples);
+            VkSampleCountFlagBits msaaSamples,
+            void* callbackObject = nullptr,
+            std::function<void(VkExtent2D, void*)> resizeCallback = nullptr,
+            std::function<void(VkRenderPass, void*)> renderPassUpdateCallback = nullptr);
     ~MyRenderer();
 
     MyRenderer(MyRenderer& other) = delete;
@@ -32,6 +36,10 @@ public:
     float getAspectRatio();
 
 private:
+    std::function<void(VkExtent2D, void*)> resizeCallback;
+    std::function<void(VkRenderPass, void*)> renderPassUpdateCallback;
+    void* callbackObject;
+
     void createCommandBuffers();
     void reCreateSwapChain();
 

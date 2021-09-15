@@ -59,11 +59,16 @@ struct PushConstantData {
 class HelloTriangleApplication
 {
 public:
+    ~HelloTriangleApplication() 
+    {
+        cleanup();
+    }
+
     void run() {
         createGameObjects();
         initVulkan();
         mainLoop();
-        cleanup();
+        //cleanup();
     }
 
 private:
@@ -123,7 +128,6 @@ private:
 
         vkDestroyDescriptorPool(device.device, descriptorPool, nullptr);
     }
-
 
 
     void updateUniformBuffer(uint32_t currentImage)
@@ -282,12 +286,43 @@ private:
         }
     }
 
+public: //TODO perhaps another way, friend?
+    static void resizeCallback(VkExtent2D newExtent, void* obj)
+    {
+        HelloTriangleApplication* app = reinterpret_cast<HelloTriangleApplication*>(obj);
+        app->recreateBuffers();
+    }
 
+    void recreateBuffers()
+    {
+        cleanupBuffers();
+
+        createUniformBuffers();
+        createDescriptorPool();
+        createDescriptorSets();
+    }
+
+    static void renderPassUpdateCallback(VkRenderPass newRenderPass, void* obj)
+    {
+        HelloTriangleApplication* app = reinterpret_cast<HelloTriangleApplication*>(obj);
+        app->recreatePipeline(newRenderPass);
+    }
+
+    void recreatePipeline(VkRenderPass newRenderPass)
+    {
+        pipeline = std::make_unique<MyPipeline>(device,
+                &descriptorSetLayout, device.getMaxUsableSampleCount(), 
+                newRenderPass);
+    }
 
 private:
     MyWindow window;
     MyDevice device{window};
-    MyRenderer renderer{window, device, device.getMaxUsableSampleCount()};
+    MyRenderer renderer{window, device, 
+            device.getMaxUsableSampleCount(),
+            static_cast<void*>(this), 
+            &HelloTriangleApplication::resizeCallback,
+            &HelloTriangleApplication::renderPassUpdateCallback};
     std::vector<MyGameObject> gameObjects{};
     std::unique_ptr<MyPipeline> pipeline;
     VkDescriptorSetLayout descriptorSetLayout;

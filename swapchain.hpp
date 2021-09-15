@@ -33,10 +33,11 @@ public:
             size_t imageIndex);
     VkResult present(uint32_t imageIndex);
     size_t size();
-    bool renderPassCompatible(const VkRenderPass& renderPass);
+    bool renderPassCompatible(const std::shared_ptr<MySwapChain> oldSwapchain);
 
     VkSwapchainKHR swapChain = VK_NULL_HANDLE;
     VkFormat swapChainImageFormat;
+    VkFormat swapChainDepthFormat;
     VkExtent2D swapChainExtent;
 
 private:

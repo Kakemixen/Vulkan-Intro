@@ -6,15 +6,24 @@
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 
+#include <memory>
+#include <vector>
+#include <functional>
 #include <iostream>
 #include <cassert>
 
 MyRenderer::MyRenderer(MyWindow& window,
             MyDevice& device,
-            VkSampleCountFlagBits msaaSamples)
+            VkSampleCountFlagBits msaaSamples,
+            void* callbackObject,
+            std::function<void(VkExtent2D, void*)> resizeCallback,
+            std::function<void(VkRenderPass, void*)> renderPassUpdateCallback)
     : window(window),
       device(device),
-      msaaSamples(msaaSamples)
+      msaaSamples(msaaSamples),
+      callbackObject(callbackObject),
+      resizeCallback(resizeCallback),
+      renderPassUpdateCallback(renderPassUpdateCallback)
 {
     swapchain = std::make_unique<MySwapChain>(device,
             window.getExtent(), msaaSamples);
@@ -143,19 +152,24 @@ void MyRenderer::reCreateSwapChain()
 
     vkDeviceWaitIdle(device.device);
 
+    std::shared_ptr<MySwapChain> oldSwapchain = std::move(swapchain);
     swapchain = std::make_unique<MySwapChain>(device,
-            window.getExtent(), msaaSamples, std::move(swapchain));
+            extent, msaaSamples, oldSwapchain);
 
-    //cleanupSwapChain();
+    if (window.wasResized()) {
+        if (resizeCallback) 
+            resizeCallback(extent, callbackObject);
+        else 
+            std::cout << "Warning: Resized without callback\n";
+    }
 
-    //if (!swapchain->renderPassCompatible(pipeline->renderPass))
-    //    pipeline = std::make_unique<MyPipeline>(device,
-    //            &descriptorSetLayout, msaaSamples, 
-    //            swapchain->renderPass);
-    //createUniformBuffers();
-    //createDescriptorPool();
-    //createDescriptorSets();
-    //createCommandBuffers();
+    if (!swapchain->renderPassCompatible(oldSwapchain)) {
+        if (renderPassUpdateCallback) 
+            renderPassUpdateCallback(swapchain->getRenderPass(), callbackObject);
+        else 
+            throw std::runtime_error("Error: RenderPass incompatible, and no callback provided");
+    }
+
 }
 
 uint32_t MyRenderer::getIndex()
