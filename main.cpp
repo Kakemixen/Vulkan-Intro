@@ -7,6 +7,7 @@
 #include "texture.hpp"
 #include "game_object.hpp"
 #include "renderer.hpp"
+#include "simple_render_system.hpp"
 #include "utils.hpp"
 
 //libs
@@ -76,9 +77,9 @@ private:
     void initVulkan() 
     {
         createDescriptorSetLayout();
-        pipeline = std::make_unique<MyPipeline>(device,
-                &descriptorSetLayout, device.getMaxUsableSampleCount(), 
-                renderer.getSwapChainRenderPass());
+        renderSystem = std::make_unique<SimpleRenderSystem>(device,
+                renderer.getSwapChainRenderPass(),
+                &descriptorSetLayout);
         createUniformBuffers();
         createDescriptorPool();
         createDescriptorSets();
@@ -92,18 +93,13 @@ private:
             auto currentTime = std::chrono::high_resolution_clock::now();
             float timeDelta = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
             startTime = std::chrono::high_resolution_clock::now();
+            for (auto& gameObject : gameObjects) {
+                gameObject.updateTick(timeDelta);
+            }
 
             VkCommandBuffer commandBuffer = renderer.beginFrame();
             renderer.beginRenderPass(commandBuffer);
-
-            pipeline->bind(commandBuffer, &descriptorSets[renderer.getIndex()]);
-            for (auto& gameObject : gameObjects) {
-                gameObject.updateTick(timeDelta);
-                pipeline->pushConstants(commandBuffer, sizeof(gameObject.transform.matrix), &gameObject.transform.matrix);
-                gameObject.model->bind(commandBuffer);
-                gameObject.model->draw(commandBuffer);
-            }
-
+            renderSystem->renderGameObjects(commandBuffer, gameObjects, &descriptorSets[renderer.getIndex()]);
             renderer.endRenderPass(commandBuffer);
             renderer.endFrame(commandBuffer);
         }
@@ -310,9 +306,7 @@ public: //TODO perhaps another way, friend?
 
     void recreatePipeline(VkRenderPass newRenderPass)
     {
-        pipeline = std::make_unique<MyPipeline>(device,
-                &descriptorSetLayout, device.getMaxUsableSampleCount(), 
-                newRenderPass);
+        renderSystem->createNewPipeline(newRenderPass, &descriptorSetLayout);
     }
 
 private:
@@ -324,8 +318,8 @@ private:
             &HelloTriangleApplication::resizeCallback,
             &HelloTriangleApplication::renderPassUpdateCallback};
     std::vector<MyGameObject> gameObjects{};
-    std::unique_ptr<MyPipeline> pipeline;
     VkDescriptorSetLayout descriptorSetLayout;
+    std::unique_ptr<SimpleRenderSystem> renderSystem;
     VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
     std::vector<VkBuffer> uniformBuffers;
