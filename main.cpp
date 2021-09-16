@@ -1,14 +1,10 @@
 #include "device.hpp"
 #include "window.hpp"
-#include "vertex.hpp"
 #include "model.hpp"
-#include "swapchain.hpp"
-#include "pipeline.hpp"
 #include "texture.hpp"
 #include "game_object.hpp"
 #include "renderer.hpp"
 #include "simple_render_system.hpp"
-#include "utils.hpp"
 
 //libs
 #include <vulkan/vulkan_core.h>
@@ -18,29 +14,16 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
 
 //std
 #include <iostream>
-#include <stdexcept>
-#include <cstdlib>
 #include <vector>
-#include <map>
-#include <optional>
-#include <set>
-#include <algorithm>
-#include <fstream>
 #include <array>
 #include <chrono>
-#include <unordered_map>
 #include <memory>
 
-//cstd
-#include <unistd.h>
-#include <cstring>
-#include <cstdint>
-#include <cassert>
+//cstd - why is memcpy in cstring
+#include <cstring> 
 
 
 const std::string MODEL_PATH = "models/companion_cube.obj";

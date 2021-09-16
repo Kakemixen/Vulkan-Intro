@@ -11,19 +11,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <vector>
-#include <stdexcept>
-
-#include <cstring>
-
-struct UniformBufferObject {
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 proj;
-};
-
-struct PushConstantData {
-    alignas(16) glm::mat4 transform;
-};
-
 
 SimpleRenderSystem::SimpleRenderSystem(MyDevice& device, 
         VkRenderPass renderPass,
