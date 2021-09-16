@@ -5,6 +5,7 @@
 #include "game_object.hpp"
 #include "renderer.hpp"
 #include "simple_render_system.hpp"
+#include "camera.hpp"
 
 //libs
 #include <vulkan/vulkan_core.h>
@@ -52,7 +53,6 @@ public:
         createGameObjects();
         initVulkan();
         mainLoop();
-        //cleanup();
     }
 
 private:
@@ -113,13 +113,8 @@ private:
     {
 
         UniformBufferObject ubo{};
-        ubo.view = glm::lookAt(glm::vec3(2.f, 2.f, 2.f), 
-                glm::vec3(0.f, 0.f, 0.f),
-                glm::vec3(0.f, 0.f, 1.f));
-        ubo.proj = glm::perspective(glm::radians(45.f), 
-                renderer.getAspectRatio(),
-                0.1f, 10.f);
-        ubo.proj[1][1] *= -1;
+        ubo.view = camera.getView();
+        ubo.proj = camera.getProjection();
 
         void* data;
         vkMapMemory(device.device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
@@ -303,6 +298,10 @@ private:
     std::vector<MyGameObject> gameObjects{};
     VkDescriptorSetLayout descriptorSetLayout;
     std::unique_ptr<SimpleRenderSystem> renderSystem;
+    MyCamera camera{{2.0f, 2.0f, 2.0f},
+            {-2.f, -2.f, -2.f}, 
+            {0.f, 0.f, 1.f},
+            renderer.getAspectRatio()};
     VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
     std::vector<VkBuffer> uniformBuffers;
