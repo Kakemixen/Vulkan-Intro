@@ -106,6 +106,10 @@ public:
     VkDevice device;
     VkSurfaceKHR surface;
 
+    void createDescriptorPool(std::vector<VkDescriptorPoolSize>& poolSizes,
+            uint32_t maxSets);
+    VkDescriptorPool descriptorPool;
+
 private:
     void createInstance();
     void setupDebugmessenger();

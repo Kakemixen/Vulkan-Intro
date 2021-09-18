@@ -34,6 +34,7 @@ MyDevice::MyDevice(MyWindow& window)
 
 MyDevice::~MyDevice()
 { 
+    vkDestroyDescriptorPool(device, descriptorPool, nullptr);
     for (auto& [key, pool] : poolMap) {
         vkDestroyCommandPool(device, pool, nullptr);
     }
@@ -839,4 +840,20 @@ void MyDevice::freeCommandBuffers(std::vector<VkCommandBuffer>* commandBuffers)
 {
     vkFreeCommandBuffers(device, poolMap[CommandPool::Command], 
             static_cast<uint32_t>(commandBuffers->size()), commandBuffers->data());
+}
+
+void MyDevice::createDescriptorPool(std::vector<VkDescriptorPoolSize>& poolSizes,
+    uint32_t maxSets)
+{
+    VkDescriptorPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    poolInfo.pPoolSizes = poolSizes.data();
+    poolInfo.maxSets = maxSets;
+
+    if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool)
+            != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create descriptor pool!");
+    }
 }

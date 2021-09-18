@@ -66,6 +66,7 @@ private:
         createUniformBuffers();
         createDescriptorPool();
         createDescriptorSets();
+        updateDescriptorSets();
     }
 
     void mainLoop() 
@@ -99,13 +100,10 @@ private:
 
     void cleanupBuffers()
     {
-
         for (size_t i = 0; i < renderer.getSize(); i++) {
             vkDestroyBuffer(device.device, uniformBuffers[i], nullptr);
             vkFreeMemory(device.device, uniformBuffersMemory[i], nullptr);
         }
-
-        vkDestroyDescriptorPool(device.device, descriptorPool, nullptr);
     }
 
 
@@ -187,23 +185,13 @@ private:
 
     void createDescriptorPool()
     {
-        std::array<VkDescriptorPoolSize, 2> poolSizes{};
+        std::vector<VkDescriptorPoolSize> poolSizes(2, VkDescriptorPoolSize{});
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[0].descriptorCount = static_cast<uint32_t>(renderer.getSize());
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         poolSizes[1].descriptorCount = static_cast<uint32_t>(renderer.getSize());
 
-        VkDescriptorPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-        poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = static_cast<uint32_t>(renderer.getSize());
-
-        if (vkCreateDescriptorPool(device.device, &poolInfo, nullptr, &descriptorPool)
-                != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create descriptor pool!");
-        }
+        device.createDescriptorPool(poolSizes, renderer.getSize());
     }
 
     void createDescriptorSets()
@@ -211,7 +199,7 @@ private:
         std::vector<VkDescriptorSetLayout> layouts(renderer.getSize(), descriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = descriptorPool;
+        allocInfo.descriptorPool = device.descriptorPool;
         allocInfo.descriptorSetCount = static_cast<uint32_t>(renderer.getSize());
         allocInfo.pSetLayouts = layouts.data();
 
@@ -222,6 +210,10 @@ private:
             throw std::runtime_error("failed to allocate descriptor sets!");
         }
 
+    }
+
+    void updateDescriptorSets()
+    {
         for (size_t i = 0; i < renderer.getSize(); i++) {
             VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = uniformBuffers[i];
@@ -272,8 +264,7 @@ public: //TODO perhaps another way, friend?
         cleanupBuffers();
 
         createUniformBuffers();
-        createDescriptorPool();
-        createDescriptorSets();
+        updateDescriptorSets();
     }
 
     static void renderPassUpdateCallback(VkRenderPass newRenderPass, void* obj)
@@ -302,7 +293,6 @@ private:
             {-2.f, -2.f, -2.f}, 
             {0.f, 0.f, 1.f},
             renderer.getAspectRatio()};
-    VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
