@@ -58,7 +58,7 @@ private:
         createDescriptorSetLayout();
         createUniformBuffers();
         createDescriptorPool();
-        descriptorManager.createDescriptorSets(renderer.getSize());
+        descriptorManager.createDescriptorSets(renderer.getSize(), 1);
         updateDescriptorSets();
         renderSystem = std::make_unique<SimpleRenderSystem>(device,
                 renderer.getSwapChainRenderPass(),
@@ -79,7 +79,8 @@ private:
 
             VkCommandBuffer commandBuffer = renderer.beginFrame();
             renderer.beginRenderPass(commandBuffer);
-            renderSystem->renderGameObjects(commandBuffer, gameObjects, &descriptorManager.descriptorSets[renderer.getIndex()]);
+            renderSystem->renderGameObjects(commandBuffer, gameObjects, 
+                    descriptorManager.getDescriptorSets(renderer.getIndex()));
             renderer.endRenderPass(commandBuffer);
             renderer.endFrame(commandBuffer);
         }
@@ -132,15 +133,18 @@ private:
         uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         uboLayoutBinding.pImmutableSamplers = nullptr;
 
+        std::vector<VkDescriptorSetLayoutBinding> globalBindings = {uboLayoutBinding};
+        descriptorManager.createGlobalDescriptorSetLayout(globalBindings);
+
         VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-        samplerLayoutBinding.binding = 1;
+        samplerLayoutBinding.binding = 0;
         samplerLayoutBinding.descriptorCount = 1;
         samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         samplerLayoutBinding.pImmutableSamplers = nullptr;
         samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        std::vector<VkDescriptorSetLayoutBinding> bindings = {uboLayoutBinding, samplerLayoutBinding};
-        descriptorManager.createDescriptorSetLayout(bindings);
+        std::vector<VkDescriptorSetLayoutBinding> textureBindings = {samplerLayoutBinding};
+        descriptorManager.createTextureDescriptorSetLayout(textureBindings);
     }
 
     void createUniformBuffers()
@@ -168,12 +172,16 @@ private:
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         poolSizes[1].descriptorCount = static_cast<uint32_t>(renderer.getSize());
 
-        device.createDescriptorPool(poolSizes, renderer.getSize());
+        device.createDescriptorPool(poolSizes, 
+                renderer.getSize() * 2);
     }
 
     void updateDescriptorSets()
     {
-        VkDescriptorImageInfo imageInfo = gameObjects[0].texture->getImageInfo();
+        std::vector<VkDescriptorImageInfo> imageInfos(1,
+                VkDescriptorImageInfo{});
+        imageInfos[0] = gameObjects[0].texture->getImageInfo();
+        descriptorManager.updateTextureDescriptorSets(imageInfos);
 
         std::vector<VkDescriptorBufferInfo> bufferInfos(renderer.getSize(),
                 VkDescriptorBufferInfo{});
@@ -184,8 +192,8 @@ private:
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
 
-            descriptorManager.updateDescriptorSets(i,
-                    bufferInfo, imageInfo);
+            descriptorManager.updateGlobalDescriptorSets(i,
+                    bufferInfo);
         }
     }
 

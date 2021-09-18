@@ -3,6 +3,7 @@
 #include "device.hpp"
 #include "game_object.hpp"
 #include "model.hpp"
+#include "descriptor_manager.hpp"
 
 #include <vulkan/vulkan.h>
 #define GLM_FORCE_RADIANS
@@ -14,10 +15,10 @@
 
 SimpleRenderSystem::SimpleRenderSystem(MyDevice& device, 
         VkRenderPass renderPass,
-        VkDescriptorSetLayout* pDescriptorSetLayout)
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts)
     : device(device)
 {
-    createNewPipeline(renderPass, pDescriptorSetLayout);
+    createNewPipeline(renderPass, descriptorSetLayouts);
 }
 
 SimpleRenderSystem::~SimpleRenderSystem()
@@ -25,9 +26,10 @@ SimpleRenderSystem::~SimpleRenderSystem()
 
 void SimpleRenderSystem::renderGameObjects(VkCommandBuffer commandBuffer, 
         std::vector<MyGameObject> gameObjects,
-        VkDescriptorSet* pDescriptorSet)
+        const std::vector<VkDescriptorSet>& descriptorSets)
 {
-    pipeline->bind(commandBuffer, pDescriptorSet);
+    pipeline->bind(commandBuffer);
+    pipeline->bindDescriptorSets(commandBuffer, descriptorSets);
     for (auto& gameObject : gameObjects) {
         pipeline->pushConstants(commandBuffer, sizeof(gameObject.transform.matrix), &gameObject.transform.matrix);
         gameObject.model->bind(commandBuffer);
@@ -36,10 +38,10 @@ void SimpleRenderSystem::renderGameObjects(VkCommandBuffer commandBuffer,
 }
 
 void SimpleRenderSystem::createNewPipeline(VkRenderPass newRenderPass,
-        VkDescriptorSetLayout* pDescriptorSetLayout)
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts)
 {
     pipeline = std::make_unique<MyPipeline>(device,
-            pDescriptorSetLayout, device.getMaxUsableSampleCount(), 
+            descriptorSetLayouts, device.getMaxUsableSampleCount(), 
             newRenderPass);
 }
 

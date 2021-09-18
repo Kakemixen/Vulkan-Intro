@@ -8,23 +8,42 @@
 class MyTexture;
 class MyDevice;
 
+
 class MyDescriptorManager
 {
 public:
     MyDescriptorManager(MyDevice& device);
     ~MyDescriptorManager();
 
-    void createDescriptorSets(uint32_t numFrameBuffers);
-    void updateDescriptorSets(size_t i,
-            VkDescriptorBufferInfo bufferInfo,
-            VkDescriptorImageInfo imageInfo);
-    VkDescriptorSetLayout* getDescriptorSetLayout();
-    void createDescriptorSetLayout(
+    void createDescriptorSets(uint32_t numFrameBuffers, uint32_t numTextures);
+    void updateGlobalDescriptorSets(size_t i,
+            VkDescriptorBufferInfo& bufferInfo);
+    void updateTextureDescriptorSets(
+        std::vector<VkDescriptorImageInfo>& imageInfos);
+    std::vector<VkDescriptorSetLayout> getDescriptorSetLayout();
+    void createGlobalDescriptorSetLayout(
+            std::vector<VkDescriptorSetLayoutBinding> bindings);
+    void createTextureDescriptorSetLayout(
             std::vector<VkDescriptorSetLayoutBinding> bindings);
 
-    std::vector<VkDescriptorSet> descriptorSets;
+    std::vector<VkDescriptorSet> getDescriptorSets(size_t i);
+
+    // num frames - one each frame
+    std::vector<VkDescriptorSet> globalDescriptorSets;
+
+    // num textures - not changing between frames - bind corresponding to object
+    std::vector<VkDescriptorSet> textureDescriptorSets; 
+
 private:
-    VkDescriptorSetLayout descriptorSetLayout;
+    VkDescriptorSetLayout globalDescriptorSetLayout;
+    VkDescriptorSetLayout textureDescriptorSetLayout;
 
     MyDevice& device;
+
+    void createDescriptorSetsHelper(std::vector<VkDescriptorSet>& descriptorSets, 
+            uint32_t numSets, VkDescriptorSetLayout layout);
+    void createDescriptorSetLayoutHelper(
+        std::vector<VkDescriptorSetLayoutBinding> bindings,
+        VkDescriptorSetLayout* layout);
 };
+

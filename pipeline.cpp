@@ -11,13 +11,13 @@
 #include <stdexcept>
 
 MyPipeline::MyPipeline(MyDevice& device,
-        VkDescriptorSetLayout* pDescriptorSetLayout,
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts,
         VkSampleCountFlagBits msaaSamples,
         VkRenderPass renderPass)
     : device(device),
       renderPass(renderPass)
 { 
-    createGraphicsPipeline(pDescriptorSetLayout,
+    createGraphicsPipeline(descriptorSetLayouts,
             msaaSamples);
 }
 
@@ -46,7 +46,7 @@ VkShaderModule MyPipeline::createShaderModule(const std::vector<char>& code)
 }
 
 void MyPipeline::createGraphicsPipeline(
-        VkDescriptorSetLayout* pDescriptorSetLayout,
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts,
         VkSampleCountFlagBits msaaSamples)
 {
     auto vertShaderCode = readFile("build/shaders/shader.vert.spv");
@@ -162,8 +162,9 @@ void MyPipeline::createGraphicsPipeline(
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = pDescriptorSetLayout;
+    pipelineLayoutInfo.setLayoutCount = 
+            static_cast<uint32_t>(descriptorSetLayouts.size());
+    pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
     pipelineLayoutInfo.pushConstantRangeCount = 1;
     pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
@@ -210,12 +211,24 @@ void MyPipeline::createGraphicsPipeline(
     vkDestroyShaderModule(device.device, vertShaderModule, nullptr);
 }
 
-void MyPipeline::bind(VkCommandBuffer commandBuffer,
-        VkDescriptorSet* pDescriptorSet)
+void MyPipeline::bind(VkCommandBuffer commandBuffer)
 {
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-            0, 1, pDescriptorSet, 0, nullptr);
+    vkCmdBindPipeline(commandBuffer, 
+            VK_PIPELINE_BIND_POINT_GRAPHICS, 
+            graphicsPipeline);
+}
+
+void MyPipeline::bindDescriptorSets(VkCommandBuffer commandBuffer,
+        std::vector<VkDescriptorSet> descriptorSets, 
+        uint32_t firstSet)
+{
+    vkCmdBindDescriptorSets(commandBuffer, 
+            VK_PIPELINE_BIND_POINT_GRAPHICS, 
+            pipelineLayout,
+            firstSet, 
+            static_cast<uint32_t>(descriptorSets.size()), 
+            descriptorSets.data(), 
+            0, nullptr);
 }
 
 void MyPipeline::pushConstants(VkCommandBuffer commandBuffer, uint32_t size, const void* data)

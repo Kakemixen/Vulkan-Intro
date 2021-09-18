@@ -14,17 +14,17 @@ class SimpleRenderSystem
 public:
     SimpleRenderSystem(MyDevice& device, 
             VkRenderPass renderPass,
-            VkDescriptorSetLayout* pDescriptorSetLayout);
+            std::vector<VkDescriptorSetLayout> descriptorSetLayouts);
     ~SimpleRenderSystem();
 
     SimpleRenderSystem(const SimpleRenderSystem& other) = delete;
     SimpleRenderSystem& operator=(const SimpleRenderSystem& other) = delete;
 
     void createNewPipeline(VkRenderPass newRenderPass,
-            VkDescriptorSetLayout* pDescriptorSetLayout);
+            std::vector<VkDescriptorSetLayout> descriptorSetLayouts);
     void renderGameObjects(VkCommandBuffer commandBuffer, 
             std::vector<MyGameObject> gameObjects,
-            VkDescriptorSet* pDescriptorSet);
+            const std::vector<VkDescriptorSet>& globalDescriptorSet);
 
 private:
 

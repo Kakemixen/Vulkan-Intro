@@ -14,54 +14,75 @@ MyDescriptorManager::MyDescriptorManager(MyDevice& device)
 
 MyDescriptorManager::~MyDescriptorManager()
 {
-    vkDestroyDescriptorSetLayout(device.device, descriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(device.device, globalDescriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(device.device, textureDescriptorSetLayout, nullptr);
 }
 
-void MyDescriptorManager::createDescriptorSets(uint32_t numFrameBuffers)
+void MyDescriptorManager::createDescriptorSetsHelper(std::vector<VkDescriptorSet>& descriptorSets, 
+        uint32_t numSets, VkDescriptorSetLayout layout)
 {
-    std::vector<VkDescriptorSetLayout> layouts(numFrameBuffers, descriptorSetLayout);
+    std::vector<VkDescriptorSetLayout> layouts(numSets, layout);
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = device.descriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(numFrameBuffers);
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(numSets);
     allocInfo.pSetLayouts = layouts.data();
 
-    descriptorSets.resize(numFrameBuffers);
+    descriptorSets.resize(numSets);
     if (vkAllocateDescriptorSets(device.device, &allocInfo, descriptorSets.data())
             != VK_SUCCESS)
     {
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
-
 }
 
-void MyDescriptorManager::updateDescriptorSets(size_t i,
-        VkDescriptorBufferInfo bufferInfo,
-        VkDescriptorImageInfo imageInfo)
+void MyDescriptorManager::createDescriptorSets(uint32_t numFrameBuffers, uint32_t numTextures)
 {
-    assert(i < descriptorSets.size());
+    createDescriptorSetsHelper(globalDescriptorSets, numFrameBuffers, globalDescriptorSetLayout);
+    createDescriptorSetsHelper(textureDescriptorSets, 1, textureDescriptorSetLayout);
+}
 
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+void MyDescriptorManager::updateGlobalDescriptorSets(size_t i,
+        VkDescriptorBufferInfo& bufferInfo)
+{
+    assert(i < globalDescriptorSets.size());
 
-    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = descriptorSets[i];
-    descriptorWrites[0].dstBinding = 0;
-    descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
-    descriptorWrites[0].pImageInfo = nullptr;
-    descriptorWrites[0].pTexelBufferView = nullptr;
+    VkWriteDescriptorSet descriptorWrite{};
 
-    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = descriptorSets[i];
-    descriptorWrites[1].dstBinding = 1;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pBufferInfo = nullptr;
-    descriptorWrites[1].pImageInfo = &imageInfo;
-    descriptorWrites[1].pTexelBufferView = nullptr;
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = globalDescriptorSets[i];
+    descriptorWrite.dstBinding = 0;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pBufferInfo = &bufferInfo;
+    descriptorWrite.pImageInfo = nullptr;
+    descriptorWrite.pTexelBufferView = nullptr;
+
+    vkUpdateDescriptorSets(device.device, 
+            1,
+            &descriptorWrite,
+            0, nullptr);
+}
+
+void MyDescriptorManager::updateTextureDescriptorSets(
+        std::vector<VkDescriptorImageInfo>& imageInfos)
+{
+    assert(imageInfos.size() == textureDescriptorSets.size());
+    std::vector<VkWriteDescriptorSet> descriptorWrites(imageInfos.size(),
+            VkWriteDescriptorSet{});
+
+    for (size_t i = 0; i < imageInfos.size(); i++) {
+        descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[i].dstSet = textureDescriptorSets[0];
+        descriptorWrites[i].dstBinding = 0;
+        descriptorWrites[i].dstArrayElement = i;
+        descriptorWrites[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[i].descriptorCount = 1;
+        descriptorWrites[i].pBufferInfo = nullptr;
+        descriptorWrites[i].pImageInfo = &imageInfos[i];
+        descriptorWrites[i].pTexelBufferView = nullptr;
+    }
 
     vkUpdateDescriptorSets(device.device, 
             static_cast<uint32_t>(descriptorWrites.size()), 
@@ -69,24 +90,41 @@ void MyDescriptorManager::updateDescriptorSets(size_t i,
             0, nullptr);
 }
 
-void MyDescriptorManager::createDescriptorSetLayout(
-        std::vector<VkDescriptorSetLayoutBinding> bindings)
+void MyDescriptorManager::createDescriptorSetLayoutHelper(
+    std::vector<VkDescriptorSetLayoutBinding> bindings,
+    VkDescriptorSetLayout* layout)
 {
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
     layoutInfo.pBindings = bindings.data();
 
-    if (vkCreateDescriptorSetLayout(device.device, &layoutInfo, nullptr, &descriptorSetLayout)
+    if (vkCreateDescriptorSetLayout(device.device, &layoutInfo, nullptr, layout)
             != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create descriptor set layout!");
     }
 }
 
-VkDescriptorSetLayout* MyDescriptorManager::getDescriptorSetLayout()
+void MyDescriptorManager::createGlobalDescriptorSetLayout(
+        std::vector<VkDescriptorSetLayoutBinding> bindings)
 {
-    return &descriptorSetLayout;
+    createDescriptorSetLayoutHelper(bindings, &globalDescriptorSetLayout);
+}
+
+void MyDescriptorManager::createTextureDescriptorSetLayout(
+        std::vector<VkDescriptorSetLayoutBinding> bindings)
+{
+    createDescriptorSetLayoutHelper(bindings, &textureDescriptorSetLayout);
+}
+
+std::vector<VkDescriptorSetLayout> MyDescriptorManager::getDescriptorSetLayout()
+{
+    return {globalDescriptorSetLayout, textureDescriptorSetLayout};
 }
 
 
+std::vector<VkDescriptorSet> MyDescriptorManager::getDescriptorSets(size_t i)
+{
+    return {globalDescriptorSets[i], textureDescriptorSets[0]};
+}
