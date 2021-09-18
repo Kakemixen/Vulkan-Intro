@@ -6,6 +6,7 @@
 #include "renderer.hpp"
 #include "simple_render_system.hpp"
 #include "camera.hpp"
+#include "descriptor_manager.hpp"
 
 //libs
 #include <vulkan/vulkan_core.h>
@@ -30,23 +31,18 @@
 const std::string MODEL_PATH = "models/companion_cube.obj";
 const std::string TEXTURE_PATH = "textures/companion_cube.png";
 
-
 struct UniformBufferObject {
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
 };
-
-struct PushConstantData {
-    alignas(16) glm::mat4 transform;
-};
-
 
 class HelloTriangleApplication
 {
 public:
     ~HelloTriangleApplication() 
     {
-        cleanup();
+        cleanupBuffers();
+        glfwTerminate();
     }
 
     void run() {
@@ -60,13 +56,13 @@ private:
     void initVulkan() 
     {
         createDescriptorSetLayout();
-        renderSystem = std::make_unique<SimpleRenderSystem>(device,
-                renderer.getSwapChainRenderPass(),
-                &descriptorSetLayout);
         createUniformBuffers();
         createDescriptorPool();
-        createDescriptorSets();
+        descriptorManager.createDescriptorSets(renderer.getSize());
         updateDescriptorSets();
+        renderSystem = std::make_unique<SimpleRenderSystem>(device,
+                renderer.getSwapChainRenderPass(),
+                descriptorManager.getDescriptorSetLayout());
     }
 
     void mainLoop() 
@@ -83,19 +79,11 @@ private:
 
             VkCommandBuffer commandBuffer = renderer.beginFrame();
             renderer.beginRenderPass(commandBuffer);
-            renderSystem->renderGameObjects(commandBuffer, gameObjects, &descriptorSets[renderer.getIndex()]);
+            renderSystem->renderGameObjects(commandBuffer, gameObjects, &descriptorManager.descriptorSets[renderer.getIndex()]);
             renderer.endRenderPass(commandBuffer);
             renderer.endFrame(commandBuffer);
         }
         vkDeviceWaitIdle(device.device);
-    }
-
-    void cleanup() 
-    {
-        cleanupBuffers();
-
-        vkDestroyDescriptorSetLayout(device.device, descriptorSetLayout, nullptr);
-        glfwTerminate();
     }
 
     void cleanupBuffers()
@@ -109,7 +97,6 @@ private:
 
     void updateUniformBuffer(uint32_t currentImage)
     {
-
         UniformBufferObject ubo{};
         ubo.view = camera.getView();
         ubo.proj = camera.getProjection();
@@ -152,18 +139,8 @@ private:
         samplerLayoutBinding.pImmutableSamplers = nullptr;
         samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
-
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-        layoutInfo.pBindings = bindings.data();
-
-        if (vkCreateDescriptorSetLayout(device.device, &layoutInfo, nullptr, &descriptorSetLayout)
-                != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create descriptor set layout!");
-        }
+        std::vector<VkDescriptorSetLayoutBinding> bindings = {uboLayoutBinding, samplerLayoutBinding};
+        descriptorManager.createDescriptorSetLayout(bindings);
     }
 
     void createUniformBuffers()
@@ -194,61 +171,21 @@ private:
         device.createDescriptorPool(poolSizes, renderer.getSize());
     }
 
-    void createDescriptorSets()
-    {
-        std::vector<VkDescriptorSetLayout> layouts(renderer.getSize(), descriptorSetLayout);
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = device.descriptorPool;
-        allocInfo.descriptorSetCount = static_cast<uint32_t>(renderer.getSize());
-        allocInfo.pSetLayouts = layouts.data();
-
-        descriptorSets.resize(renderer.getSize());
-        if (vkAllocateDescriptorSets(device.device, &allocInfo, descriptorSets.data())
-                != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to allocate descriptor sets!");
-        }
-
-    }
-
     void updateDescriptorSets()
     {
+        VkDescriptorImageInfo imageInfo = gameObjects[0].texture->getImageInfo();
+
+        std::vector<VkDescriptorBufferInfo> bufferInfos(renderer.getSize(),
+                VkDescriptorBufferInfo{});
+
         for (size_t i = 0; i < renderer.getSize(); i++) {
             VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = uniformBuffers[i];
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
 
-            //TODO no
-            VkDescriptorImageInfo imageInfo = gameObjects[0].texture->getImageInfo();
-
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-
-            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = descriptorSets[i];
-            descriptorWrites[0].dstBinding = 0;
-            descriptorWrites[0].dstArrayElement = 0;
-            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].pBufferInfo = &bufferInfo;
-            descriptorWrites[0].pImageInfo = nullptr;
-            descriptorWrites[0].pTexelBufferView = nullptr;
-
-            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = descriptorSets[i];
-            descriptorWrites[1].dstBinding = 1;
-            descriptorWrites[1].dstArrayElement = 0;
-            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pBufferInfo = nullptr;
-            descriptorWrites[1].pImageInfo = &imageInfo;
-            descriptorWrites[1].pTexelBufferView = nullptr;
-
-            vkUpdateDescriptorSets(device.device, 
-                    static_cast<uint32_t>(descriptorWrites.size()), 
-                    descriptorWrites.data(),
-                    0, nullptr);
+            descriptorManager.updateDescriptorSets(i,
+                    bufferInfo, imageInfo);
         }
     }
 
@@ -256,15 +193,14 @@ public: //TODO perhaps another way, friend?
     static void resizeCallback(VkExtent2D newExtent, void* obj)
     {
         HelloTriangleApplication* app = reinterpret_cast<HelloTriangleApplication*>(obj);
-        app->recreateBuffers();
+        app->updateBuffers();
     }
 
-    void recreateBuffers()
+    void updateBuffers()
     {
-        cleanupBuffers();
-
-        createUniformBuffers();
-        updateDescriptorSets();
+        for (size_t i = 0; i < renderer.getSize(); i++) {
+            updateUniformBuffer(i); 
+        }
     }
 
     static void renderPassUpdateCallback(VkRenderPass newRenderPass, void* obj)
@@ -275,7 +211,7 @@ public: //TODO perhaps another way, friend?
 
     void recreatePipeline(VkRenderPass newRenderPass)
     {
-        renderSystem->createNewPipeline(newRenderPass, &descriptorSetLayout);
+        renderSystem->createNewPipeline(newRenderPass, descriptorManager.getDescriptorSetLayout());
     }
 
 private:
@@ -287,15 +223,14 @@ private:
             &HelloTriangleApplication::resizeCallback,
             &HelloTriangleApplication::renderPassUpdateCallback};
     std::vector<MyGameObject> gameObjects{};
-    VkDescriptorSetLayout descriptorSetLayout;
     std::unique_ptr<SimpleRenderSystem> renderSystem;
     MyCamera camera{{2.0f, 2.0f, 2.0f},
             {-2.f, -2.f, -2.f}, 
             {0.f, 0.f, 1.f},
             renderer.getAspectRatio()};
-    std::vector<VkDescriptorSet> descriptorSets;
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
+    MyDescriptorManager descriptorManager{device};
 
 public:
 };
