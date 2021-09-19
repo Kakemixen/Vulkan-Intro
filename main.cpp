@@ -198,7 +198,13 @@ private:
 public: //TODO perhaps another way, friend?
     static void resizeCallback(VkExtent2D newExtent, void* obj)
     {
-        HelloTriangleApplication* app = reinterpret_cast<HelloTriangleApplication*>(obj);
+        HelloTriangleApplication* app = 
+            reinterpret_cast<HelloTriangleApplication*>(obj);
+        app->camera.updateAr(
+                MyCamera::calculateAspectRatio(
+                    static_cast<uint32_t>(newExtent.width),
+                    static_cast<uint32_t>(newExtent.height))
+                );
         app->updateBuffers();
     }
 
@@ -211,13 +217,15 @@ public: //TODO perhaps another way, friend?
 
     static void renderPassUpdateCallback(VkRenderPass newRenderPass, void* obj)
     {
-        HelloTriangleApplication* app = reinterpret_cast<HelloTriangleApplication*>(obj);
+        HelloTriangleApplication* app = 
+            reinterpret_cast<HelloTriangleApplication*>(obj);
         app->recreatePipeline(newRenderPass);
     }
 
     void recreatePipeline(VkRenderPass newRenderPass)
     {
-        renderSystem->createNewPipeline(newRenderPass, descriptorManager.getDescriptorSetLayout());
+        renderSystem->createNewPipeline(newRenderPass, 
+                descriptorManager.getDescriptorSetLayout());
     }
 
 private:
@@ -235,7 +243,10 @@ private:
     MyCamera camera{{2.0f, 2.0f, 2.0f},
             {-2.f, -2.f, -2.f}, 
             {0.f, 0.f, 1.f},
-            renderer.getAspectRatio()};
+            MyCamera::calculateAspectRatio(
+                    static_cast<uint32_t>(renderer.getSwapChainExtent().width),
+                    static_cast<uint32_t>(renderer.getSwapChainExtent().height))
+            };
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
     MyDescriptorManager descriptorManager{device};

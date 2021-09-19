@@ -23,6 +23,7 @@ public:
     void move(glm::vec3 translation);
     void updateAr(float newAr);
 
+    static float calculateAspectRatio(uint32_t width, uint32_t height);
 
 private:
     glm::mat4 view{1.f};

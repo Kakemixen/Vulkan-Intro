@@ -1,5 +1,6 @@
 #include "camera.hpp"
 
+#include <vulkan/vulkan.h>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
@@ -51,6 +52,11 @@ void MyCamera::updateAr(float newAr)
     projection = glm::perspective(glm::radians(45.f), 
             newAr, 0.1f, 10.f);
     projection[1][1] *= -1;
+}
+
+float MyCamera::calculateAspectRatio(uint32_t width, uint32_t height)
+{
+    return width / (float) height;
 }
 
 

@@ -33,7 +33,7 @@ public:
     uint32_t getIndex();
     VkRenderPass getSwapChainRenderPass();
     size_t getSize();
-    float getAspectRatio();
+    VkExtent2D getSwapChainExtent();
 
 private:
     std::function<void(VkExtent2D, void*)> resizeCallback;

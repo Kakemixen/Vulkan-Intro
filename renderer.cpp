@@ -187,7 +187,7 @@ size_t MyRenderer::getSize()
     return swapchain->size();
 }
 
-float MyRenderer::getAspectRatio()
+VkExtent2D MyRenderer::getSwapChainExtent()
 {
-    return swapchain->swapChainExtent.width / (float) swapchain->swapChainExtent.height;
+    return swapchain->swapChainExtent;
 }
