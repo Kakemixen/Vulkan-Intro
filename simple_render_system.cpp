@@ -3,7 +3,7 @@
 #include "device.hpp"
 #include "game_object.hpp"
 #include "model.hpp"
-#include "descriptor_manager.hpp"
+#include "texture.hpp"
 
 #include <vulkan/vulkan.h>
 #define GLM_FORCE_RADIANS
@@ -25,13 +25,14 @@ SimpleRenderSystem::~SimpleRenderSystem()
 { }
 
 void SimpleRenderSystem::renderGameObjects(VkCommandBuffer commandBuffer, 
-        std::vector<MyGameObject> gameObjects,
-        const std::vector<VkDescriptorSet>& descriptorSets)
+        std::vector<MyGameObject>& gameObjects,
+        const std::vector<VkDescriptorSet>& globalDescriptorSets)
 {
     pipeline->bind(commandBuffer);
-    pipeline->bindDescriptorSets(commandBuffer, descriptorSets);
+    pipeline->bindDescriptorSets(commandBuffer, globalDescriptorSets);
     for (auto& gameObject : gameObjects) {
         pipeline->pushConstants(commandBuffer, sizeof(gameObject.transform.matrix), &gameObject.transform.matrix);
+        pipeline->bindDescriptorSets(commandBuffer, {gameObject.texture->getDescriptor()}, 1);
         gameObject.model->bind(commandBuffer);
         gameObject.model->draw(commandBuffer);
     }

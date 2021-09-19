@@ -214,3 +214,14 @@ VkDescriptorImageInfo MyTexture::getImageInfo()
 
     return imageInfo;
 }
+
+void MyTexture::setDescriptor(VkDescriptorSet descriptor)
+{
+    this->descriptor = descriptor;
+}
+
+VkDescriptorSet MyTexture::getDescriptor()
+{
+    return descriptor;
+}
+

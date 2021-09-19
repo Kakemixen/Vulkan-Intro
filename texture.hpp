@@ -14,6 +14,8 @@ public:
     MyTexture operator=(MyTexture& other) = delete;
 
     VkDescriptorImageInfo getImageInfo();
+    void setDescriptor(VkDescriptorSet descriptor);
+    VkDescriptorSet getDescriptor();
 
 private:
     void createTextureImage(const char* texturePath);
@@ -31,4 +33,5 @@ private:
     VkSampler textureSampler;
     uint32_t mipLevels;
     MyDevice& device;
+    VkDescriptorSet descriptor;
 };

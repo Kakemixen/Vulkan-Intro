@@ -23,7 +23,7 @@ public:
     void createNewPipeline(VkRenderPass newRenderPass,
             std::vector<VkDescriptorSetLayout> descriptorSetLayouts);
     void renderGameObjects(VkCommandBuffer commandBuffer, 
-            std::vector<MyGameObject> gameObjects,
+            std::vector<MyGameObject>& gameObjects,
             const std::vector<VkDescriptorSet>& globalDescriptorSet);
 
 private:

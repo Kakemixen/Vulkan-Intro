@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <memory>
 
 class MyTexture;
 class MyDevice;
@@ -15,18 +16,19 @@ public:
     MyDescriptorManager(MyDevice& device);
     ~MyDescriptorManager();
 
-    void createDescriptorSets(uint32_t numFrameBuffers, uint32_t numTextures);
+    void createDescriptorSets(uint32_t numFrameBuffers,
+        std::vector<std::shared_ptr<MyTexture>>& textures);
     void updateGlobalDescriptorSets(size_t i,
             VkDescriptorBufferInfo& bufferInfo);
     void updateTextureDescriptorSets(
-        std::vector<VkDescriptorImageInfo>& imageInfos);
+        std::vector<std::shared_ptr<MyTexture>>& textures);
     std::vector<VkDescriptorSetLayout> getDescriptorSetLayout();
     void createGlobalDescriptorSetLayout(
             std::vector<VkDescriptorSetLayoutBinding> bindings);
     void createTextureDescriptorSetLayout(
             std::vector<VkDescriptorSetLayoutBinding> bindings);
 
-    std::vector<VkDescriptorSet> getDescriptorSets(size_t i);
+    std::vector<VkDescriptorSet> getGlobalDescriptorSets(size_t i);
 
     // num frames - one each frame
     std::vector<VkDescriptorSet> globalDescriptorSets;

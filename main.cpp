@@ -74,7 +74,7 @@ private:
         createDescriptorSetLayout();
         createUniformBuffers();
         createDescriptorPool();
-        descriptorManager.createDescriptorSets(renderer.getSize(), 1);
+        descriptorManager.createDescriptorSets(renderer.getSize(), textures);
         updateDescriptorSets();
         renderSystem = std::make_unique<SimpleRenderSystem>(device,
                 renderer.getSwapChainRenderPass(),
@@ -96,7 +96,7 @@ private:
             VkCommandBuffer commandBuffer = renderer.beginFrame();
             renderer.beginRenderPass(commandBuffer);
             renderSystem->renderGameObjects(commandBuffer, gameObjects, 
-                    descriptorManager.getDescriptorSets(renderer.getIndex()));
+                    descriptorManager.getGlobalDescriptorSets(renderer.getIndex()));
             renderer.endRenderPass(commandBuffer);
             renderer.endFrame(commandBuffer);
         }
@@ -139,8 +139,7 @@ private:
 
         VkDescriptorSetLayoutBinding samplerLayoutBinding{};
         samplerLayoutBinding.binding = 0;
-        samplerLayoutBinding.descriptorCount = 
-            static_cast<uint32_t>(textures.size());
+        samplerLayoutBinding.descriptorCount = 1;
         samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         samplerLayoutBinding.pImmutableSamplers = nullptr;
         samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -180,11 +179,7 @@ private:
 
     void updateDescriptorSets()
     {
-        std::vector<VkDescriptorImageInfo> imageInfos(2,
-                VkDescriptorImageInfo{});
-        imageInfos[0] = textures[0]->getImageInfo();
-        imageInfos[1] = textures[1]->getImageInfo();
-        descriptorManager.updateTextureDescriptorSets(imageInfos);
+        descriptorManager.updateTextureDescriptorSets(textures);
 
         std::vector<VkDescriptorBufferInfo> bufferInfos(renderer.getSize(),
                 VkDescriptorBufferInfo{});

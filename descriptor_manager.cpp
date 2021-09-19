@@ -1,5 +1,6 @@
 #include "descriptor_manager.hpp"
 #include "device.hpp"
+#include "texture.hpp"
 
 #include <vulkan/vulkan.h>
 
@@ -36,10 +37,15 @@ void MyDescriptorManager::createDescriptorSetsHelper(std::vector<VkDescriptorSet
     }
 }
 
-void MyDescriptorManager::createDescriptorSets(uint32_t numFrameBuffers, uint32_t numTextures)
+void MyDescriptorManager::createDescriptorSets(uint32_t numFrameBuffers, 
+        std::vector<std::shared_ptr<MyTexture>>& textures)
 {
     createDescriptorSetsHelper(globalDescriptorSets, numFrameBuffers, globalDescriptorSetLayout);
-    createDescriptorSetsHelper(textureDescriptorSets, 1, textureDescriptorSetLayout);
+    createDescriptorSetsHelper(textureDescriptorSets, 
+            static_cast<uint32_t>(textures.size()), textureDescriptorSetLayout);
+    for (size_t i = 0; i < textures.size(); i++) {
+        textures[i]->setDescriptor(textureDescriptorSets[i]);
+    }
 }
 
 void MyDescriptorManager::updateGlobalDescriptorSets(size_t i,
@@ -66,16 +72,24 @@ void MyDescriptorManager::updateGlobalDescriptorSets(size_t i,
 }
 
 void MyDescriptorManager::updateTextureDescriptorSets(
-        std::vector<VkDescriptorImageInfo>& imageInfos)
+        std::vector<std::shared_ptr<MyTexture>>& textures)
 {
-    std::vector<VkWriteDescriptorSet> descriptorWrites(imageInfos.size(),
+    assert(textures.size() == textureDescriptorSets.size());
+
+    std::vector<VkWriteDescriptorSet> descriptorWrites(textures.size(),
             VkWriteDescriptorSet{});
 
-    for (size_t i = 0; i < imageInfos.size(); i++) {
+    std::vector<VkDescriptorImageInfo> imageInfos(textures.size());
+    for (size_t i = 0; i < textures.size(); i++) {
+        imageInfos[i] = textures[i]->getImageInfo();
+    }
+    
+
+    for (size_t i = 0; i < textures.size(); i++) {
         descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[i].dstSet = textureDescriptorSets[0];
+        descriptorWrites[i].dstSet = textureDescriptorSets[i];
         descriptorWrites[i].dstBinding = 0;
-        descriptorWrites[i].dstArrayElement = i;
+        descriptorWrites[i].dstArrayElement = 0;
         descriptorWrites[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         descriptorWrites[i].descriptorCount = 1;
         descriptorWrites[i].pBufferInfo = nullptr;
@@ -123,7 +137,7 @@ std::vector<VkDescriptorSetLayout> MyDescriptorManager::getDescriptorSetLayout()
 }
 
 
-std::vector<VkDescriptorSet> MyDescriptorManager::getDescriptorSets(size_t i)
+std::vector<VkDescriptorSet> MyDescriptorManager::getGlobalDescriptorSets(size_t i)
 {
-    return {globalDescriptorSets[i], textureDescriptorSets[0]};
+    return {globalDescriptorSets[i]};
 }
