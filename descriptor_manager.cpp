@@ -68,7 +68,6 @@ void MyDescriptorManager::updateGlobalDescriptorSets(size_t i,
 void MyDescriptorManager::updateTextureDescriptorSets(
         std::vector<VkDescriptorImageInfo>& imageInfos)
 {
-    assert(imageInfos.size() == textureDescriptorSets.size());
     std::vector<VkWriteDescriptorSet> descriptorWrites(imageInfos.size(),
             VkWriteDescriptorSet{});
 

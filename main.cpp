@@ -27,10 +27,6 @@
 //cstd - why is memcpy in cstring
 #include <cstring> 
 
-
-const std::string MODEL_PATH = "models/companion_cube.obj";
-const std::string TEXTURE_PATH = "textures/companion_cube.png";
-
 struct UniformBufferObject {
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
@@ -52,6 +48,26 @@ public:
     }
 
 private:
+
+    void createGameObjects()
+    {
+        auto model    = std::make_shared<MyModel>(device, "models/companion_cube.obj");
+        auto texture  = std::make_shared<MyTexture>(device, "textures/companion_cube.png");
+        auto texture2 = std::make_shared<MyTexture>(device, "textures/companion_cube_blue.png");
+
+        MyGameObject gameObject = MyGameObject::createGameObject(model, texture);
+        gameObjects.push_back(std::move(gameObject));
+
+        gameObject = MyGameObject::createGameObject(model, texture2);
+        gameObject.transform.matrix = glm::translate(gameObject.transform.matrix,
+                glm::vec3(-1.f, -1.f, 2.f));
+        gameObject.transform.matrix = glm::scale(gameObject.transform.matrix,
+                glm::vec3(0.5f));
+        gameObjects.push_back(std::move(gameObject));
+        models.push_back(std::move(model));
+        textures.push_back(std::move(texture));
+        textures.push_back(std::move(texture2));
+    }
 
     void initVulkan() 
     {
@@ -108,21 +124,6 @@ private:
         vkUnmapMemory(device.device, uniformBuffersMemory[currentImage]);
     }
 
-    void createGameObjects()
-    {
-        auto model   = std::make_shared<MyModel>(device, MODEL_PATH.c_str());
-        auto texture = std::make_shared<MyTexture>(device, TEXTURE_PATH.c_str());
-
-        MyGameObject gameObject = MyGameObject::createGameObject(model, texture);
-        gameObjects.push_back(std::move(gameObject));
-
-        gameObject = MyGameObject::createGameObject(model, texture);
-        gameObject.transform.matrix = glm::translate(gameObject.transform.matrix,
-                glm::vec3(-1.f, -1.f, 2.f));
-        gameObject.transform.matrix = glm::scale(gameObject.transform.matrix,
-                glm::vec3(0.5f));
-        gameObjects.push_back(std::move(gameObject));
-    }
 
     void createDescriptorSetLayout()
     {
@@ -138,7 +139,8 @@ private:
 
         VkDescriptorSetLayoutBinding samplerLayoutBinding{};
         samplerLayoutBinding.binding = 0;
-        samplerLayoutBinding.descriptorCount = 1;
+        samplerLayoutBinding.descriptorCount = 
+            static_cast<uint32_t>(textures.size());
         samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         samplerLayoutBinding.pImmutableSamplers = nullptr;
         samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -170,7 +172,7 @@ private:
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[0].descriptorCount = static_cast<uint32_t>(renderer.getSize());
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<uint32_t>(renderer.getSize());
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(textures.size());
 
         device.createDescriptorPool(poolSizes, 
                 renderer.getSize() * 2);
@@ -178,9 +180,10 @@ private:
 
     void updateDescriptorSets()
     {
-        std::vector<VkDescriptorImageInfo> imageInfos(1,
+        std::vector<VkDescriptorImageInfo> imageInfos(2,
                 VkDescriptorImageInfo{});
-        imageInfos[0] = gameObjects[0].texture->getImageInfo();
+        imageInfos[0] = textures[0]->getImageInfo();
+        imageInfos[1] = textures[1]->getImageInfo();
         descriptorManager.updateTextureDescriptorSets(imageInfos);
 
         std::vector<VkDescriptorBufferInfo> bufferInfos(renderer.getSize(),
@@ -231,6 +234,8 @@ private:
             &HelloTriangleApplication::resizeCallback,
             &HelloTriangleApplication::renderPassUpdateCallback};
     std::vector<MyGameObject> gameObjects{};
+    std::vector<std::shared_ptr<MyTexture>> textures{};
+    std::vector<std::shared_ptr<MyModel>> models{};
     std::unique_ptr<SimpleRenderSystem> renderSystem;
     MyCamera camera{{2.0f, 2.0f, 2.0f},
             {-2.f, -2.f, -2.f}, 
