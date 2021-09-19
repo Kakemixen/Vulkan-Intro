@@ -145,7 +145,7 @@ void MyDevice::createLogicalDevice()
     vkGetDeviceQueue(device, indices.transferFamily.value(), 0, &queueMap[DeviceQueue::Transfer]);
 }
 
-int MyDevice::rateDeviceSuitability(VkPhysicalDevice device)
+int MyDevice::rateDeviceSuitability(VkPhysicalDevice device) const
 {
     VkPhysicalDeviceProperties deviceProperties;
     VkPhysicalDeviceFeatures   deviceFeatures;
@@ -188,7 +188,7 @@ int MyDevice::rateDeviceSuitability(VkPhysicalDevice device)
     return score;
 }
 
-QueueFamilyIndices MyDevice::findQueueFamilies(VkPhysicalDevice device)
+QueueFamilyIndices MyDevice::findQueueFamilies(VkPhysicalDevice device) const
 {
     QueueFamilyIndices indices;
     uint32_t queueFamilyCount = 0;
@@ -217,7 +217,7 @@ QueueFamilyIndices MyDevice::findQueueFamilies(VkPhysicalDevice device)
     return indices;
 }
 
-VkSampleCountFlagBits MyDevice::getMaxUsableSampleCount()
+VkSampleCountFlagBits MyDevice::getMaxUsableSampleCount() const
 {
     VkPhysicalDeviceProperties physicalDeviceProperties;
     vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
@@ -309,7 +309,7 @@ bool checkDeviceExtensionSupport(VkPhysicalDevice device)
     return requiredExtensions.empty();
 }
 
-SwapChainSupportDetails MyDevice::querySwapChainSupport(VkPhysicalDevice device)
+SwapChainSupportDetails MyDevice::querySwapChainSupport(VkPhysicalDevice device) const
 {
     SwapChainSupportDetails details;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
@@ -356,7 +356,7 @@ bool checkValidationLayerSupport()
     return true;
 }
 
-std::vector<const char*> MyDevice::getRequiredExtensions()
+std::vector<const char*> MyDevice::getRequiredExtensions() const
 {
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
@@ -422,7 +422,7 @@ void MyDevice::createSurface()
     }
 }
 
-uint32_t MyDevice::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+uint32_t MyDevice::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const
 {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
@@ -440,7 +440,7 @@ void MyDevice::createBuffer(VkDeviceSize size,
         VkBufferUsageFlags usage,
         VkMemoryPropertyFlags properties,
         VkBuffer& buffer,
-        VkDeviceMemory& bufferMemory)
+        VkDeviceMemory& bufferMemory) const
 {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -581,7 +581,7 @@ VkImageView MyDevice::createImageView(
         VkImage image, 
         VkFormat format, 
         VkImageAspectFlags aspectFlags,
-        uint32_t mipLevels)
+        uint32_t mipLevels) const
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -605,7 +605,7 @@ VkImageView MyDevice::createImageView(
 VkFormat MyDevice::findSupportedFormat(
         const std::vector<VkFormat>& candidates,
         VkImageTiling tiling,
-        VkFormatFeatureFlags features)
+        VkFormatFeatureFlags features) const
 {
     for (VkFormat format : candidates) {
         VkFormatProperties props;
@@ -625,7 +625,7 @@ VkFormat MyDevice::findSupportedFormat(
     throw std::runtime_error("failed to find supported format!");
 }
 
-VkFormat MyDevice::findDepthFormat()
+VkFormat MyDevice::findDepthFormat() const
 {
     return findSupportedFormat(
             {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
@@ -641,7 +641,7 @@ void MyDevice::createImage(uint32_t width, uint32_t height,
         VkImageUsageFlags usage,
         VkMemoryPropertyFlags properties,
         VkImage& image,
-        VkDeviceMemory & imageMemory)
+        VkDeviceMemory & imageMemory) const
 {
 
     VkImageCreateInfo imageInfo{};

@@ -26,14 +26,14 @@ public:
     MySwapChain(MySwapChain& other) = delete;
     MySwapChain operator=(MySwapChain& other) = delete;
 
-    VkFramebuffer getFramebuffer(size_t i);
-    VkRenderPass getRenderPass();
-    VkResult acquireNextImage(uint32_t* imageIndex);
+    VkFramebuffer getFramebuffer(size_t i) const;
+    VkRenderPass getRenderPass() const;
+    VkResult acquireNextImage(uint32_t* imageIndex) const;
     VkResult submitCommandBuffers(VkCommandBuffer* commandBuffer, 
             size_t imageIndex);
     VkResult present(uint32_t imageIndex);
     size_t size();
-    bool renderPassCompatible(const std::shared_ptr<MySwapChain> oldSwapchain);
+    bool renderPassCompatible(const std::shared_ptr<MySwapChain> oldSwapchain) const;
 
     VkSwapchainKHR swapChain = VK_NULL_HANDLE;
     VkFormat swapChainImageFormat;

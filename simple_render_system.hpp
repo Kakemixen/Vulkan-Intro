@@ -24,7 +24,7 @@ public:
             std::vector<VkDescriptorSetLayout> descriptorSetLayouts);
     void renderGameObjects(VkCommandBuffer commandBuffer, 
             std::vector<MyGameObject>& gameObjects,
-            const std::vector<VkDescriptorSet>& globalDescriptorSet);
+            const std::vector<VkDescriptorSet>& globalDescriptorSet) const;
 
 private:
 

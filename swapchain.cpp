@@ -379,7 +379,7 @@ void MySwapChain::createRenderPass()
     }
 }
 
-VkResult MySwapChain::acquireNextImage(uint32_t* imageIndex)
+VkResult MySwapChain::acquireNextImage(uint32_t* imageIndex) const
 {
     vkWaitForFences(device.device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
     return vkAcquireNextImageKHR(device.device, swapChain, UINT64_MAX,
@@ -432,18 +432,18 @@ VkResult MySwapChain::present(uint32_t imageIndex)
     return device.present(&presentInfo);
 }
 
-bool MySwapChain::renderPassCompatible(const std::shared_ptr<MySwapChain> oldSwapchain)
+bool MySwapChain::renderPassCompatible(const std::shared_ptr<MySwapChain> oldSwapchain) const
 {
     return oldSwapchain->swapChainImageFormat == swapChainImageFormat
         && oldSwapchain->swapChainDepthFormat == swapChainDepthFormat;
 }
 
-VkFramebuffer MySwapChain::getFramebuffer(size_t i)
+VkFramebuffer MySwapChain::getFramebuffer(size_t i) const
 {
     return swapChainFramebuffers[i];
 }
 
-VkRenderPass MySwapChain::getRenderPass()
+VkRenderPass MySwapChain::getRenderPass() const
 {
     return renderPass;
 }

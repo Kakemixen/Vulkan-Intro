@@ -21,13 +21,13 @@ public:
     MyPipeline(MyPipeline& other) = delete;
     MyPipeline operator=(MyPipeline& other) = delete;
 
-    void bind(VkCommandBuffer commandBuffer);
+    void bind(VkCommandBuffer commandBuffer) const;
     void bindDescriptorSets(VkCommandBuffer commandBuffer,
             std::vector<VkDescriptorSet> descriptorSets, 
-            uint32_t firstSet=0);
+            uint32_t firstSet=0) const;
     void pushConstants(VkCommandBuffer commandBuffer, 
             uint32_t size,
-            const void* data);
+            const void* data) const;
 
     VkRenderPass renderPass;
 

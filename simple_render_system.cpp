@@ -26,7 +26,7 @@ SimpleRenderSystem::~SimpleRenderSystem()
 
 void SimpleRenderSystem::renderGameObjects(VkCommandBuffer commandBuffer, 
         std::vector<MyGameObject>& gameObjects,
-        const std::vector<VkDescriptorSet>& globalDescriptorSets)
+        const std::vector<VkDescriptorSet>& globalDescriptorSets) const
 {
     pipeline->bind(commandBuffer);
     pipeline->bindDescriptorSets(commandBuffer, globalDescriptorSets);

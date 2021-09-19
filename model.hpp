@@ -21,8 +21,8 @@ public:
     void loadModel(const char* modelPath);
     void createVertexBuffer();
     void createIndexBuffer();
-    void bind(VkCommandBuffer& commandBuffer);
-    void draw(VkCommandBuffer& commandBuffer);
+    void bind(VkCommandBuffer& commandBuffer) const;
+    void draw(VkCommandBuffer& commandBuffer) const;
 
 private:
     MyDevice& device;

@@ -211,7 +211,7 @@ void MyPipeline::createGraphicsPipeline(
     vkDestroyShaderModule(device.device, vertShaderModule, nullptr);
 }
 
-void MyPipeline::bind(VkCommandBuffer commandBuffer)
+void MyPipeline::bind(VkCommandBuffer commandBuffer) const
 {
     vkCmdBindPipeline(commandBuffer, 
             VK_PIPELINE_BIND_POINT_GRAPHICS, 
@@ -220,7 +220,7 @@ void MyPipeline::bind(VkCommandBuffer commandBuffer)
 
 void MyPipeline::bindDescriptorSets(VkCommandBuffer commandBuffer,
         std::vector<VkDescriptorSet> descriptorSets, 
-        uint32_t firstSet)
+        uint32_t firstSet) const
 {
     vkCmdBindDescriptorSets(commandBuffer, 
             VK_PIPELINE_BIND_POINT_GRAPHICS, 
@@ -231,7 +231,7 @@ void MyPipeline::bindDescriptorSets(VkCommandBuffer commandBuffer,
             0, nullptr);
 }
 
-void MyPipeline::pushConstants(VkCommandBuffer commandBuffer, uint32_t size, const void* data)
+void MyPipeline::pushConstants(VkCommandBuffer commandBuffer, uint32_t size, const void* data) const
 {
     vkCmdPushConstants(commandBuffer, 
             pipelineLayout, 

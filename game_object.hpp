@@ -24,7 +24,7 @@ public:
             std::shared_ptr<MyTexture> texture);
     void updateTick(float timeDelta);
 
-    uint32_t getId();
+    uint32_t getId() const;
 
     std::shared_ptr<MyModel> model{};
     std::shared_ptr<MyTexture> texture{};

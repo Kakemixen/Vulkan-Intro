@@ -131,13 +131,13 @@ void MyDescriptorManager::createTextureDescriptorSetLayout(
     createDescriptorSetLayoutHelper(bindings, &textureDescriptorSetLayout);
 }
 
-std::vector<VkDescriptorSetLayout> MyDescriptorManager::getDescriptorSetLayout()
+std::vector<VkDescriptorSetLayout> MyDescriptorManager::getDescriptorSetLayout() const
 {
     return {globalDescriptorSetLayout, textureDescriptorSetLayout};
 }
 
 
-std::vector<VkDescriptorSet> MyDescriptorManager::getGlobalDescriptorSets(size_t i)
+std::vector<VkDescriptorSet> MyDescriptorManager::getGlobalDescriptorSets(size_t i) const
 {
     return {globalDescriptorSets[i]};
 }

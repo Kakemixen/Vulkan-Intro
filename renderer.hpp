@@ -30,10 +30,10 @@ public:
     void beginRenderPass(VkCommandBuffer commandBuffer);
     void endRenderPass(VkCommandBuffer commandBuffer);
 
-    uint32_t getIndex();
-    VkRenderPass getSwapChainRenderPass();
-    size_t getSize();
-    VkExtent2D getSwapChainExtent();
+    uint32_t getIndex() const;
+    VkRenderPass getSwapChainRenderPass() const;
+    size_t getSize() const;
+    VkExtent2D getSwapChainExtent() const;
 
 private:
     std::function<void(VkExtent2D, void*)> resizeCallback;

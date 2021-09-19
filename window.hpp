@@ -14,9 +14,9 @@ public:
     MyWindow(const MyWindow&) = delete;
     MyWindow operator=(const MyWindow&) = delete;
 
-    bool shouldClose();
-    VkExtent2D getExtent();
-    bool wasResized();
+    bool shouldClose() const;
+    VkExtent2D getExtent() const;
+    bool wasResized() const;
     void resetResizedFlag();
 
 

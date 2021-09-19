@@ -27,12 +27,12 @@ MyWindow::~MyWindow()
     glfwDestroyWindow(window);
 }
 
-bool MyWindow::shouldClose()
+bool MyWindow::shouldClose() const
 {
     return glfwWindowShouldClose(window);
 }
 
-VkExtent2D MyWindow::getExtent()
+VkExtent2D MyWindow::getExtent() const
 {
     return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 }
@@ -47,7 +47,7 @@ void MyWindow::framebufferResizeCallback(GLFWwindow* window, int width, int heig
     myWindow->height = height;
 }
 
-bool MyWindow::wasResized()
+bool MyWindow::wasResized() const
 {
     return framebufferResized;
 }

@@ -22,7 +22,7 @@ struct QueueFamilyIndices
     std::optional<uint32_t> presentFamily;
     std::optional<uint32_t> transferFamily;
 
-    bool isComplete() {
+    bool isComplete() const {
         return graphicsFamily.has_value() &&
             presentFamily.has_value() && 
             transferFamily.has_value();
@@ -52,15 +52,15 @@ public:
     MyDevice operator=(MyDevice& other) = delete;
 
     void setupDevice();
-    VkSampleCountFlagBits getMaxUsableSampleCount();
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+    VkSampleCountFlagBits getMaxUsableSampleCount() const;
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) const;
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) const;
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
     void createBuffer(VkDeviceSize size,
             VkBufferUsageFlags usage,
             VkMemoryPropertyFlags properties,
             VkBuffer& buffer,
-            VkDeviceMemory& bufferMemory);
+            VkDeviceMemory& bufferMemory) const;
     void copyBuffer(VkBuffer srcBuffer, 
             VkBuffer dstBuffer, 
             VkDeviceSize size);
@@ -74,8 +74,8 @@ public:
         VkImage image, 
         VkFormat format, 
         VkImageAspectFlags aspectFlags,
-        uint32_t mipLevels);
-    VkFormat findDepthFormat();
+        uint32_t mipLevels) const;
+    VkFormat findDepthFormat() const;
     void createImage(uint32_t width, uint32_t height, 
         uint32_t mipLevels,
         VkSampleCountFlagBits numSamples,
@@ -84,7 +84,7 @@ public:
         VkImageUsageFlags usage,
         VkMemoryPropertyFlags properties,
         VkImage& image,
-        VkDeviceMemory & imageMemory);
+        VkDeviceMemory & imageMemory) const;
     void transitionImageLayout(VkImage image, 
         VkFormat format, 
         VkImageLayout oldLayout, 
@@ -115,13 +115,13 @@ private:
     void setupDebugmessenger();
     void pickPhysicalDevice();
     void createLogicalDevice();
-    int rateDeviceSuitability(VkPhysicalDevice device);
-    std::vector<const char*> getRequiredExtensions();
+    int rateDeviceSuitability(VkPhysicalDevice device) const;
+    std::vector<const char*> getRequiredExtensions() const;
     void createSurface();
     VkFormat findSupportedFormat(
         const std::vector<VkFormat>& candidates,
         VkImageTiling tiling,
-        VkFormatFeatureFlags features);
+        VkFormatFeatureFlags features) const;
 
     MyWindow& window;
     VkInstance instance;

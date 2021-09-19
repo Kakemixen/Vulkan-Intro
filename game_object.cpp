@@ -25,7 +25,7 @@ MyGameObject::MyGameObject(uint32_t id,
     transform.matrix = glm::translate(transform.matrix, glm::vec3(-2.f, -2.f, -2.f));
 }
 
-uint32_t MyGameObject::getId()
+uint32_t MyGameObject::getId() const
 {
     return id;
 }

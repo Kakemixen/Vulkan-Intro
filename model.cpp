@@ -27,7 +27,7 @@ MyModel::~MyModel()
     vkFreeMemory(device.device, indexBufferMemory, nullptr);
 }
 
-void MyModel::bind(VkCommandBuffer& commandBuffer)
+void MyModel::bind(VkCommandBuffer& commandBuffer) const
 {
     VkBuffer vertexBuffers[] = {vertexBuffer};
     VkDeviceSize offsets[] = {0};
@@ -35,7 +35,7 @@ void MyModel::bind(VkCommandBuffer& commandBuffer)
     vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 }
 
-void MyModel::draw(VkCommandBuffer& commandBuffer)
+void MyModel::draw(VkCommandBuffer& commandBuffer) const
 {
     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 }

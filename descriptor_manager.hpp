@@ -22,13 +22,13 @@ public:
             VkDescriptorBufferInfo& bufferInfo);
     void updateTextureDescriptorSets(
         std::vector<std::shared_ptr<MyTexture>>& textures);
-    std::vector<VkDescriptorSetLayout> getDescriptorSetLayout();
     void createGlobalDescriptorSetLayout(
             std::vector<VkDescriptorSetLayoutBinding> bindings);
     void createTextureDescriptorSetLayout(
             std::vector<VkDescriptorSetLayoutBinding> bindings);
 
-    std::vector<VkDescriptorSet> getGlobalDescriptorSets(size_t i);
+    std::vector<VkDescriptorSetLayout> getDescriptorSetLayout() const;
+    std::vector<VkDescriptorSet> getGlobalDescriptorSets(size_t i) const;
 
     // num frames - one each frame
     std::vector<VkDescriptorSet> globalDescriptorSets;

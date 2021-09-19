@@ -172,22 +172,22 @@ void MyRenderer::reCreateSwapChain()
 
 }
 
-uint32_t MyRenderer::getIndex()
+uint32_t MyRenderer::getIndex() const
 {
     return currentCommandBufferIdx;    
 }
 
-VkRenderPass MyRenderer::getSwapChainRenderPass()
+VkRenderPass MyRenderer::getSwapChainRenderPass() const
 {
     return swapchain->getRenderPass();
 }
 
-size_t MyRenderer::getSize()
+size_t MyRenderer::getSize() const
 {
     return swapchain->size();
 }
 
-VkExtent2D MyRenderer::getSwapChainExtent()
+VkExtent2D MyRenderer::getSwapChainExtent() const
 {
     return swapchain->swapChainExtent;
 }

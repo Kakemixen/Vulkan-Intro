@@ -13,9 +13,9 @@ public:
     MyTexture(MyTexture& other) = delete;
     MyTexture operator=(MyTexture& other) = delete;
 
-    VkDescriptorImageInfo getImageInfo();
+    VkDescriptorImageInfo getImageInfo() const;
     void setDescriptor(VkDescriptorSet descriptor);
-    VkDescriptorSet getDescriptor();
+    VkDescriptorSet getDescriptor() const;
 
 private:
     void createTextureImage(const char* texturePath);
