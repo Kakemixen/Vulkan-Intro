@@ -19,7 +19,6 @@ public:
     bool wasResized() const;
     void resetResizedFlag();
 
-
     GLFWwindow* window;
 private:
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);

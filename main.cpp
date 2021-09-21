@@ -17,6 +17,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 //std
 #include <iostream>
@@ -84,16 +85,21 @@ private:
 
     void mainLoop() 
     {
+        std::vector<MyGameObject> cameraHandle = {MyGameObject::createGameObject()};
+        cameraHandle[0].transform.matrix = camera.getView();
+
         while (!window.shouldClose()) {
             glfwPollEvents();
             static auto startTime = std::chrono::high_resolution_clock::now();
             auto currentTime = std::chrono::high_resolution_clock::now();
             float timeDelta = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
             startTime = std::chrono::high_resolution_clock::now();
-            movementSystem.updateTick(gameObjects, timeDelta);
+            movementSystem.updateTick(cameraHandle, timeDelta);
+            camera.setTransform(cameraHandle[0].transform.matrix);
 
             VkCommandBuffer commandBuffer = renderer.beginFrame();
             renderer.beginRenderPass(commandBuffer);
+            updateUniformBuffer(renderer.getIndex());
             renderSystem->renderGameObjects(commandBuffer, gameObjects, 
                     descriptorManager.getGlobalDescriptorSets(renderer.getIndex()));
             renderer.endRenderPass(commandBuffer);
@@ -249,7 +255,7 @@ private:
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
     MyDescriptorManager descriptorManager{device};
-    MyMovementSystem movementSystem;
+    MyMovementSystem movementSystem{window.window};
 
 public:
 };

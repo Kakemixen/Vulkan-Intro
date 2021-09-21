@@ -47,6 +47,11 @@ void MyCamera::move(glm::vec3 translation)
     view = glm::lookAt(position, direction + position, up);
 }
 
+void MyCamera::setTransform(glm::mat4 transform)
+{
+    view = transform;
+}
+
 void MyCamera::updateAr(float newAr)
 {
     projection = glm::perspective(glm::radians(45.f), 
