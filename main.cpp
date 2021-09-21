@@ -7,6 +7,7 @@
 #include "simple_render_system.hpp"
 #include "camera.hpp"
 #include "descriptor_manager.hpp"
+#include "movement_system.hpp"
 
 //libs
 #include <vulkan/vulkan_core.h>
@@ -89,9 +90,7 @@ private:
             auto currentTime = std::chrono::high_resolution_clock::now();
             float timeDelta = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
             startTime = std::chrono::high_resolution_clock::now();
-            for (auto& gameObject : gameObjects) {
-                gameObject.updateTick(timeDelta);
-            }
+            movementSystem.updateTick(gameObjects, timeDelta);
 
             VkCommandBuffer commandBuffer = renderer.beginFrame();
             renderer.beginRenderPass(commandBuffer);
@@ -250,6 +249,7 @@ private:
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
     MyDescriptorManager descriptorManager{device};
+    MyMovementSystem movementSystem;
 
 public:
 };

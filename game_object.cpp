@@ -15,6 +15,12 @@ MyGameObject MyGameObject::createGameObject(
     return MyGameObject{currentId++, model, texture};
 }
 
+MyGameObject MyGameObject::createGameObject()
+{
+    static uint32_t currentId;
+    return MyGameObject{currentId++};
+}
+
 MyGameObject::MyGameObject(uint32_t id,
         std::shared_ptr<MyModel> model,
         std::shared_ptr<MyTexture> texture)
@@ -25,13 +31,13 @@ MyGameObject::MyGameObject(uint32_t id,
     transform.matrix = glm::translate(transform.matrix, glm::vec3(-2.f, -2.f, -2.f));
 }
 
+MyGameObject::MyGameObject(uint32_t id)
+    : id(id)
+{
+    transform.matrix = glm::translate(transform.matrix, glm::vec3(-2.f, -2.f, -2.f));
+}
+
 uint32_t MyGameObject::getId() const
 {
     return id;
-}
-
-void MyGameObject::updateTick(float timeDelta)
-{
-    transform.matrix = glm::translate(transform.matrix, timeDelta * glm::vec3(0.f, 0.f, -0.2f));
-    transform.matrix = glm::rotate(transform.matrix, timeDelta * glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));
 }

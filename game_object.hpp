@@ -22,7 +22,7 @@ public:
     static MyGameObject createGameObject(
             std::shared_ptr<MyModel> model,
             std::shared_ptr<MyTexture> texture);
-    void updateTick(float timeDelta);
+    static MyGameObject createGameObject();
 
     uint32_t getId() const;
 
@@ -34,6 +34,7 @@ private:
     MyGameObject(uint32_t id,
             std::shared_ptr<MyModel> model,
             std::shared_ptr<MyTexture> texture);
+    MyGameObject(uint32_t id);
 
     uint32_t id;
 };
