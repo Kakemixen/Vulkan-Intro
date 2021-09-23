@@ -17,7 +17,6 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/string_cast.hpp>
 
 //std
 #include <iostream>
@@ -245,9 +244,7 @@ private:
     std::vector<std::shared_ptr<MyTexture>> textures{};
     std::vector<std::shared_ptr<MyModel>> models{};
     std::unique_ptr<SimpleRenderSystem> renderSystem;
-    MyCamera camera{{2.0f, 2.0f, 2.0f},
-            {-2.f, -2.f, -2.f}, 
-            {0.f, 0.f, 1.f},
+    MyCamera camera{{5.0f, 0.0f, 0.0f},
             MyCamera::calculateAspectRatio(
                     static_cast<uint32_t>(renderer.getSwapChainExtent().width),
                     static_cast<uint32_t>(renderer.getSwapChainExtent().height))
