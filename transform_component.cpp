@@ -41,7 +41,11 @@ void MyTransformComponent::scale(glm::vec3 scale)
 
 void MyTransformComponent::rotate(glm::quat rotation)
 {
-    m_rotation * rotation;
+    if (glm::length(rotation) != 1) { // TODO don't need the square root for checking !=1
+        rotation = glm::normalize(rotation);
+        //std::cout << "non unit quat!" << glm::to_string(rotation) << "\n";
+    }
+    m_rotation = rotation * m_rotation;
 }
 
 glm::mat4 MyTransformComponent::getMatrix() const
@@ -50,24 +54,23 @@ glm::mat4 MyTransformComponent::getMatrix() const
     glm::mat4 mat{
         {
             (1 - 2*pow(q.y,2) - 2*pow(q.z,2)) * m_scale.x, 
-            (2*q.x*q.y + 2*q.w*q.z),
-            (2*q.x*q.z + 2*q.w*q.y),
+            (2*q.x*q.y + 2*q.w*q.z) * m_scale.x,
+            (2*q.x*q.z - 2*q.w*q.y) * m_scale.x,
             0.f
         },
         {
-            (2*q.x*q.y + 2*q.w*q.z),
+            (2*q.x*q.y - 2*q.w*q.z) * m_scale.y,
             (1 - 2*pow(q.x,2) - 2*pow(q.z,2)) * m_scale.y, 
-            (2*q.y*q.z + 2*q.w*q.x),
+            (2*q.y*q.z + 2*q.w*q.x) * m_scale.y,
             0.f
         },
         {
-            (2*q.x*q.z + 2*q.w*q.y),
-            (2*q.y*q.z + 2*q.w*q.x),
+            (2*q.x*q.z + 2*q.w*q.y) * m_scale.z,
+            (2*q.y*q.z - 2*q.w*q.x) * m_scale.z,
             (1 - 2*pow(q.x,2) - 2*pow(q.y,2)) * m_scale.z, 
             0.f
         },
         {m_location.x, m_location.y, m_location.z, 1}
     };
-    //std::cout << glm::to_string(mat) << "\n";
     return mat;
 }

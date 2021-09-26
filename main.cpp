@@ -62,6 +62,7 @@ private:
         gameObject = MyGameObject::createGameObject(model, texture2);
         gameObject.transform.translate(glm::vec3(-1.f, -1.f, 2.f));
         gameObject.transform.scale(glm::vec3(0.5f));
+        gameObject.transform.rotate(glm::quat({0.f, 1.f, 0.f}));
         gameObjects.push_back(std::move(gameObject));
         models.push_back(std::move(model));
         textures.push_back(std::move(texture));
