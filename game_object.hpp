@@ -1,20 +1,11 @@
 #pragma once
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
+#include "transform_component.hpp"
 
 #include <memory>
 
 class MyModel;
 class MyTexture;
-
-struct TransformComponent 
-{
-    glm::mat4 matrix{1.f};
-    //TODO add convenience functions
-};
-
 
 class MyGameObject 
 {
@@ -28,7 +19,7 @@ public:
 
     std::shared_ptr<MyModel> model{};
     std::shared_ptr<MyTexture> texture{};
-    TransformComponent transform{};
+    MyTransformComponent transform{};
 
 private:
     MyGameObject(uint32_t id,

@@ -18,12 +18,16 @@ void MyMovementSystem::updateTick(
     glm::vec3 translation = glm::vec3(0.f, 0.f, -0.f);
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        translation += glm::vec3(1.f, 0.f, 0.f);
+        translation += glm::vec3(0.f, 0.f, -1.f);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        translation += glm::vec3(0.f, 1.f, 0.f);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         translation += glm::vec3(-1.f, 0.f, 0.f);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        translation += glm::vec3(0.f, 0.f, 1.f);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        translation += glm::vec3(1.f, 0.f, 0.f);
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+        translation += glm::vec3(0.f, 1.f, 0.f);
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
         translation += glm::vec3(0.f, -1.f, 0.f);
 
     if (!(translation == glm::vec3(0.f)))
@@ -32,8 +36,6 @@ void MyMovementSystem::updateTick(
     translation *= 10.f;
 
     for (auto& gameObject : gameObjects) {
-        gameObject.transform.matrix = glm::translate(
-                gameObject.transform.matrix, 
-                timeDelta * translation);
+        gameObject.transform.translate(timeDelta * translation);
     }
 }

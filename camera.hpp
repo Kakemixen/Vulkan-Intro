@@ -17,6 +17,7 @@ public:
 
     glm::mat4 getView() const;
     glm::mat4 getProjection() const;
+    glm::vec3 getLocation() const;
 
     void lookAt(glm::vec3 position, glm::vec3 up);
     void lookIn(glm::vec3 direction, glm::vec3 up);
@@ -25,6 +26,7 @@ public:
     void updateAr(float newAr);
     void setPerspectiveProjection(float fovY, float ar, float near, float far);
     void setView(glm::vec3 position, glm::vec3 direction, glm::vec3 up);
+    void setView(glm::mat4 transform);
 
     static float calculateAspectRatio(uint32_t width, uint32_t height);
 

@@ -60,10 +60,8 @@ private:
         gameObjects.push_back(std::move(gameObject));
 
         gameObject = MyGameObject::createGameObject(model, texture2);
-        gameObject.transform.matrix = glm::translate(gameObject.transform.matrix,
-                glm::vec3(-1.f, -1.f, 2.f));
-        gameObject.transform.matrix = glm::scale(gameObject.transform.matrix,
-                glm::vec3(0.5f));
+        gameObject.transform.translate(glm::vec3(-1.f, -1.f, 2.f));
+        gameObject.transform.scale(glm::vec3(0.5f));
         gameObjects.push_back(std::move(gameObject));
         models.push_back(std::move(model));
         textures.push_back(std::move(texture));
@@ -85,7 +83,7 @@ private:
     void mainLoop() 
     {
         std::vector<MyGameObject> cameraHandle = {MyGameObject::createGameObject()};
-        cameraHandle[0].transform.matrix = camera.getView();
+        cameraHandle[0].transform.translate(camera.getLocation());
 
         while (!window.shouldClose()) {
             glfwPollEvents();
@@ -94,7 +92,7 @@ private:
             float timeDelta = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
             startTime = std::chrono::high_resolution_clock::now();
             movementSystem.updateTick(cameraHandle, timeDelta);
-            camera.setTransform(cameraHandle[0].transform.matrix);
+            camera.setView(cameraHandle[0].transform.getMatrix());
 
             VkCommandBuffer commandBuffer = renderer.beginFrame();
             renderer.beginRenderPass(commandBuffer);
@@ -244,7 +242,7 @@ private:
     std::vector<std::shared_ptr<MyTexture>> textures{};
     std::vector<std::shared_ptr<MyModel>> models{};
     std::unique_ptr<SimpleRenderSystem> renderSystem;
-    MyCamera camera{{5.0f, 0.0f, 0.0f},
+    MyCamera camera{{0.f, 0.f, 5.f},
             MyCamera::calculateAspectRatio(
                     static_cast<uint32_t>(renderer.getSwapChainExtent().width),
                     static_cast<uint32_t>(renderer.getSwapChainExtent().height))

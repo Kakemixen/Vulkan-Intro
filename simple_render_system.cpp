@@ -31,7 +31,8 @@ void SimpleRenderSystem::renderGameObjects(VkCommandBuffer commandBuffer,
     pipeline->bind(commandBuffer);
     pipeline->bindDescriptorSets(commandBuffer, globalDescriptorSets);
     for (auto& gameObject : gameObjects) {
-        pipeline->pushConstants(commandBuffer, sizeof(gameObject.transform.matrix), &gameObject.transform.matrix);
+        glm::mat4 objMat = gameObject.transform.getMatrix();
+        pipeline->pushConstants(commandBuffer, sizeof(objMat), &objMat);
         pipeline->bindDescriptorSets(commandBuffer, {gameObject.texture->getDescriptor()}, 1);
         gameObject.model->bind(commandBuffer);
         gameObject.model->draw(commandBuffer);

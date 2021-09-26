@@ -11,7 +11,7 @@ MyCamera::MyCamera() {}
 MyCamera::MyCamera(glm::vec3 position, float ar)
     : position(position)
 {
-    setView(position, {-1.f, 0.f, 0.f}, {0.f, 0.f, 1.f});
+    setView(position, {0.f, 0.f, -1.f}, {0.f, 1.f, 0.f});
     setPerspectiveProjection(45.f, ar, 0.1f, 10.f);
 }
 
@@ -27,7 +27,44 @@ MyCamera::MyCamera(glm::vec3 position,
     setPerspectiveProjection(glm::radians(45.f), ar, 0.1f, 10.f);
 }
 
-void MyCamera::setView(glm::vec3 position, glm::vec3 direction, glm::vec3 up) {
+void MyCamera::setView(glm::vec3 position, glm::vec3 direction, glm::vec3 up) 
+{
+    const glm::vec3 w{glm::normalize(direction)};
+    const glm::vec3 u{glm::normalize(glm::cross(w, up))};
+    const glm::vec3 v{glm::cross(w, u)};
+    this->position = position;
+    this->direction = direction;
+
+    view = glm::mat4{1.f};
+    view[0][0] = u.x;
+    view[1][0] = u.y;
+    view[2][0] = u.z;
+    view[0][1] = v.x;
+    view[1][1] = v.y;
+    view[2][1] = v.z;
+    view[0][2] = w.x;
+    view[1][2] = w.y;
+    view[2][2] = w.z;
+    view[3][0] = -glm::dot(u, position);
+    view[3][1] = -glm::dot(v, position);
+    view[3][2] = -glm::dot(w, position);
+}
+
+void MyCamera::setView(glm::mat4 transform)
+{
+    const glm::vec3 position = {
+        transform[3][0],
+        transform[3][1],
+        transform[3][2]};
+    const glm::vec3 direction = {
+        -transform[2][0],
+        -transform[2][1],
+        -transform[2][2]};
+    const glm::vec3 up = {
+        transform[1][0],
+        transform[1][1],
+        transform[1][2]};
+
     const glm::vec3 w{glm::normalize(direction)};
     const glm::vec3 u{glm::normalize(glm::cross(w, up))};
     const glm::vec3 v{glm::cross(w, u)};
@@ -104,4 +141,9 @@ glm::mat4 MyCamera::getView() const
 glm::mat4 MyCamera::getProjection() const
 {
     return projection;
+}
+
+glm::vec3 MyCamera::getLocation() const
+{
+    return position;
 }
